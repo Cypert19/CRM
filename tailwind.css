@@ -1,0 +1,263 @@
+@import "tailwindcss";
+
+/*
+ * NexusCRM Design System
+ * Gemini AI Visual Language + Web3 Dark Glassmorphism
+ *
+ * Design tokens defined via Tailwind v4 @theme directive.
+ * Single source of truth for the entire application.
+ */
+
+@theme {
+  /* ─── Background Layers ─── */
+  --color-bg-base: #0D0D12;
+  --color-bg-surface: #141420;
+  --color-bg-card: #1A1A2E;
+  --color-bg-elevated: #22223A;
+  --color-bg-glass: rgba(26, 26, 46, 0.6);
+  --color-bg-glass-dense: rgba(26, 26, 46, 0.8);
+
+  /* ─── Ambient Background Orbs ─── */
+  --color-bg-orb-violet: rgba(124, 58, 237, 0.15);
+  --color-bg-orb-cyan: rgba(6, 182, 212, 0.12);
+  --color-bg-orb-indigo: rgba(99, 102, 241, 0.10);
+
+  /* ─── Accent Colors ─── */
+  --color-accent-primary: #7C3AED;
+  --color-accent-glow: #A855F7;
+  --color-accent-cyan: #06B6D4;
+  --color-accent-cyan-glow: #22D3EE;
+
+  /* ─── Signal Colors ─── */
+  --color-signal-success: #10B981;
+  --color-signal-warning: #F59E0B;
+  --color-signal-danger: #F43F5E;
+  --color-signal-info: #3B82F6;
+
+  /* ─── Text Hierarchy ─── */
+  --color-text-primary: #F0F0F5;
+  --color-text-secondary: #A0A0B8;
+  --color-text-tertiary: #6B6B80;
+  --color-text-on-accent: #FFFFFF;
+
+  /* ─── Border Colors ─── */
+  --color-border-glass: rgba(255, 255, 255, 0.08);
+  --color-border-subtle: rgba(255, 255, 255, 0.05);
+  --color-border-focus: #7C3AED;
+
+  /* ─── Fonts ─── */
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+
+  /* ─── Border Radius (Softness as Trust) ─── */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+  --radius-full: 9999px;
+
+  /* ─── Shadows ─── */
+  --shadow-glass: 0 8px 32px rgba(0, 0, 0, 0.4);
+  --shadow-glass-inset: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  --shadow-glow-violet: 0 0 20px rgba(124, 58, 237, 0.3), 0 0 40px rgba(124, 58, 237, 0.1);
+  --shadow-glow-violet-intense: 0 0 20px rgba(124, 58, 237, 0.5), 0 0 40px rgba(124, 58, 237, 0.2);
+  --shadow-glow-cyan: 0 0 20px rgba(6, 182, 212, 0.3), 0 0 40px rgba(6, 182, 212, 0.1);
+  --shadow-glow-success: 0 0 20px rgba(16, 185, 129, 0.3);
+  --shadow-glow-warning: 0 0 20px rgba(245, 158, 11, 0.3);
+  --shadow-glow-danger: 0 0 20px rgba(244, 63, 94, 0.3);
+  --shadow-card-hover: 0 12px 40px rgba(0, 0, 0, 0.5);
+
+  /* ─── Animation Durations ─── */
+  --duration-fast: 150ms;
+  --duration-normal: 200ms;
+  --duration-slow: 300ms;
+  --duration-chart: 800ms;
+  --duration-skeleton: 1.5s;
+  --duration-thinking: 2s;
+
+  /* ─── Animation Easings ─── */
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* ─── Base Layer ─── */
+@layer base {
+  * {
+    border-color: var(--color-border-glass);
+  }
+
+  body {
+    background-color: var(--color-bg-base);
+    color: var(--color-text-primary);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Scrollbar Styling */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 3px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.2);
+  }
+}
+
+/* ─── Glassmorphism Utility Classes ─── */
+@layer utilities {
+  .glass-panel {
+    background: var(--color-bg-glass);
+    backdrop-filter: blur(16px) saturate(180%);
+    -webkit-backdrop-filter: blur(16px) saturate(180%);
+    border: 1px solid var(--color-border-glass);
+    box-shadow: var(--shadow-glass), var(--shadow-glass-inset);
+  }
+
+  .glass-panel-dense {
+    background: var(--color-bg-glass-dense);
+    backdrop-filter: blur(16px) saturate(180%);
+    -webkit-backdrop-filter: blur(16px) saturate(180%);
+    border: 1px solid var(--color-border-glass);
+    box-shadow: var(--shadow-glass), var(--shadow-glass-inset);
+  }
+
+  .glass-card-hover {
+    transition: transform var(--duration-normal) ease-out,
+                box-shadow var(--duration-normal) ease-out;
+  }
+
+  .glass-card-hover:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-card-hover), var(--shadow-glass-inset);
+  }
+
+  .glow-violet {
+    box-shadow: var(--shadow-glow-violet);
+  }
+
+  .glow-violet-intense {
+    box-shadow: var(--shadow-glow-violet-intense);
+  }
+
+  .glow-cyan {
+    box-shadow: var(--shadow-glow-cyan);
+  }
+
+  .glow-success {
+    box-shadow: var(--shadow-glow-success);
+  }
+
+  .glow-warning {
+    box-shadow: var(--shadow-glow-warning);
+  }
+
+  .glow-danger {
+    box-shadow: var(--shadow-glow-danger);
+  }
+
+  /* Gradient Action Button */
+  .gradient-button {
+    background: linear-gradient(to right, var(--color-accent-primary), var(--color-accent-glow));
+    color: var(--color-text-on-accent);
+    transition: all var(--duration-fast) ease-out;
+  }
+
+  .gradient-button:hover {
+    box-shadow: var(--shadow-glow-violet);
+    filter: brightness(1.1);
+  }
+
+  .gradient-button:active {
+    transform: scale(0.98);
+  }
+
+  /* Gradient Text */
+  .gradient-text {
+    background: linear-gradient(135deg, var(--color-accent-primary), var(--color-accent-cyan));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* Skeleton Shimmer */
+  .skeleton-shimmer {
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      rgba(255, 255, 255, 0.05) 50%,
+      transparent 100%
+    );
+    background-size: 200% 100%;
+    animation: shimmer var(--duration-skeleton) ease-in-out infinite;
+  }
+
+  @keyframes shimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+  }
+
+  /* AI Thinking Pulse */
+  .thinking-pulse {
+    animation: thinking-pulse var(--duration-thinking) ease-in-out infinite;
+  }
+
+  @keyframes thinking-pulse {
+    0%, 100% { opacity: 0.3; transform: scale(1); }
+    50% { opacity: 0.6; transform: scale(1.05); }
+  }
+
+  /* Focus Ring (Accessibility) */
+  .focus-ring {
+    outline: none;
+  }
+
+  .focus-ring:focus-visible {
+    box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.3);
+    border-color: var(--color-border-focus);
+  }
+
+  /* Active Nav Glow */
+  .nav-active-glow {
+    background: radial-gradient(
+      circle,
+      rgba(124, 58, 237, 0.2) 0%,
+      transparent 70%
+    );
+  }
+}
+
+/* ─── Reduced Motion ─── */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 150ms !important;
+  }
+
+  .skeleton-shimmer {
+    animation: none;
+    background: var(--color-bg-card);
+  }
+
+  .thinking-pulse {
+    animation: none;
+    opacity: 0.5;
+  }
+
+  .glass-card-hover:hover {
+    transform: none;
+  }
+}
