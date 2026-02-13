@@ -72,7 +72,10 @@ export function DealTranscriptsTab({ dealId, dealTitle }: Props) {
   }, [fetchTranscripts, fetchMembers]);
 
   const handleSubmit = async () => {
-    if (!formText.trim() || formText.trim().length < 10) {
+    // Capture text before any state changes — formText will be cleared below
+    const transcriptText = formText.trim();
+
+    if (!transcriptText || transcriptText.length < 10) {
       toast.error("Please paste a transcript (at least 10 characters)");
       return;
     }
@@ -84,7 +87,7 @@ export function DealTranscriptsTab({ dealId, dealTitle }: Props) {
     const createResult = await createTranscript({
       deal_id: dealId,
       title,
-      transcript_text: formText.trim(),
+      transcript_text: transcriptText,
     });
 
     if (!createResult.success || !createResult.data) {
@@ -96,7 +99,7 @@ export function DealTranscriptsTab({ dealId, dealTitle }: Props) {
     const transcriptId = createResult.data.id;
     toast.success("Transcript saved! Extracting tasks...");
 
-    // Reset form
+    // Reset form (safe — transcriptText is captured in local variable)
     setFormTitle("");
     setFormText("");
     setShowForm(false);
@@ -115,7 +118,7 @@ export function DealTranscriptsTab({ dealId, dealTitle }: Props) {
       const res = await fetch("/api/ai/extract-tasks", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ transcript: formText.trim(), dealTitle }),
+        body: JSON.stringify({ transcript: transcriptText, dealTitle }),
       });
 
       if (!res.ok) {

@@ -5,7 +5,7 @@ import { TRANSCRIPT_EXTRACT_TASKS_PROMPT } from "@/lib/ai/transcript-prompt";
 import { extractJSON, attemptJSONRepair } from "@/lib/ai/json-utils";
 
 export const runtime = "nodejs";
-export const maxDuration = 60; // transcripts can be long
+export const maxDuration = 300; // transcripts can be long
 
 export async function POST(request: Request) {
   try {
@@ -31,7 +31,9 @@ export async function POST(request: Request) {
 
     const anthropic = getAnthropicClient();
 
-    const response = await anthropic.messages.create({
+    // Use streaming SDK to keep the HTTP connection alive and prevent
+    // Vercel proxy timeout (same fix applied to the import parse route).
+    const stream = anthropic.messages.stream({
       model: "claude-sonnet-4-5-20250929",
       max_tokens: 4096,
       system: TRANSCRIPT_EXTRACT_TASKS_PROMPT,
@@ -42,6 +44,7 @@ export async function POST(request: Request) {
         },
       ],
     });
+    const response = await stream.finalMessage();
 
     // Extract text content from response
     const textContent = response.content.find((c) => c.type === "text");
