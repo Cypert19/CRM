@@ -6,6 +6,7 @@ import { ActivityFeed } from "@/components/dashboard/activity-feed";
 import { AIInsightsPanel } from "@/components/dashboard/ai-insights-panel";
 import { PageHeader } from "@/components/layout/page-header";
 
+export const dynamic = "force-dynamic";
 export const metadata = { title: "Dashboard" };
 
 export default async function DashboardPage() {
