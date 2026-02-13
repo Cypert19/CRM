@@ -67,8 +67,8 @@ export async function GET(request: Request) {
       console.error("[auth/confirm] Error activating invite membership:", err);
     }
 
-    // Redirect invited users to set their password
-    return NextResponse.redirect(`${origin}/reset-password`);
+    // Redirect invited users to set up their account (name + password)
+    return NextResponse.redirect(`${origin}/accept-invite`);
   }
 
   // For recovery, redirect to password reset

@@ -1,17 +1,121 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { createBrowserSupabaseClient } from "@/lib/supabase/client";
 import { ensureWorkspace } from "@/actions/auth";
 
 export default function LoginPage() {
+  return (
+    <Suspense fallback={
+      <>
+        <div className="mb-8 text-center">
+          <h1 className="gradient-text text-3xl font-bold">NexusCRM</h1>
+          <p className="mt-2 text-text-secondary">Loading...</p>
+        </div>
+        <div className="flex justify-center py-8">
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-accent-primary border-t-transparent" />
+        </div>
+      </>
+    }>
+      <LoginForm />
+    </Suspense>
+  );
+}
+
+function LoginForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [checkingAuth, setCheckingAuth] = useState(true);
+
+  // Handle hash fragment redirects from Supabase (invite, recovery, etc.)
+  // and query param errors
+  useEffect(() => {
+    const handleAuthRedirect = async () => {
+      const supabase = createBrowserSupabaseClient();
+
+      // Check for error in query params (from our /auth/confirm route)
+      const errorParam = searchParams.get("error");
+      if (errorParam === "invite_expired") {
+        setError("Your invitation link has expired. Please ask your admin to resend the invite.");
+        setCheckingAuth(false);
+        return;
+      }
+      if (errorParam === "invalid_token") {
+        const message = searchParams.get("message") || "Invalid or expired link";
+        setError(message);
+        setCheckingAuth(false);
+        return;
+      }
+
+      // Check for hash fragment errors (from Supabase implicit flow)
+      if (typeof window !== "undefined" && window.location.hash) {
+        const hashParams = new URLSearchParams(
+          window.location.hash.substring(1)
+        );
+        const hashError = hashParams.get("error_description");
+        if (hashError) {
+          if (hashError.includes("expired")) {
+            setError("Your invitation link has expired. Please ask your admin to resend the invite.");
+          } else {
+            setError(hashError.replace(/\+/g, " "));
+          }
+          // Clear the hash
+          window.history.replaceState(null, "", window.location.pathname);
+          setCheckingAuth(false);
+          return;
+        }
+
+        // Check for successful auth in hash (access_token from implicit flow)
+        const accessToken = hashParams.get("access_token");
+        const refreshToken = hashParams.get("refresh_token");
+        const type = hashParams.get("type");
+
+        if (accessToken && refreshToken) {
+          const { error: sessionError } = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken,
+          });
+
+          if (!sessionError) {
+            // Clear the hash
+            window.history.replaceState(null, "", window.location.pathname);
+
+            if (type === "invite" || type === "recovery") {
+              // Invited user — send to accept-invite page to set password
+              router.push("/accept-invite");
+              return;
+            }
+
+            await ensureWorkspace();
+            router.push("/dashboard");
+            router.refresh();
+            return;
+          }
+        }
+      }
+
+      // Check if user is already authenticated (e.g., from a valid invite link)
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        // User is already logged in — might have come from an invite
+        // Check if they have an active workspace
+        await ensureWorkspace();
+        router.push("/dashboard");
+        router.refresh();
+        return;
+      }
+
+      setCheckingAuth(false);
+    };
+
+    handleAuthRedirect();
+  }, [router, searchParams]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -46,6 +150,20 @@ export default function LoginPage() {
       },
     });
   };
+
+  if (checkingAuth) {
+    return (
+      <>
+        <div className="mb-8 text-center">
+          <h1 className="gradient-text text-3xl font-bold">NexusCRM</h1>
+          <p className="mt-2 text-text-secondary">Checking authentication...</p>
+        </div>
+        <div className="flex justify-center py-8">
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-accent-primary border-t-transparent" />
+        </div>
+      </>
+    );
+  }
 
   return (
     <>
