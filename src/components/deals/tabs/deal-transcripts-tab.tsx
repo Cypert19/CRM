@@ -252,6 +252,8 @@ export function DealTranscriptsTab({ dealId, dealTitle }: Props) {
     if (unconfirmed.length === 0) return;
 
     let successCount = 0;
+    const succeededIds = new Set<string>();
+    let lastError = "";
 
     for (const draftTask of unconfirmed) {
       const result = await createTask({
@@ -268,13 +270,17 @@ export function DealTranscriptsTab({ dealId, dealTitle }: Props) {
 
       if (result.success) {
         successCount++;
+        succeededIds.add(draftTask.id);
+      } else {
+        lastError = result.error || "Unknown error";
+        console.error(`Failed to create task "${draftTask.title}":`, result.error);
       }
     }
 
-    // Mark all as confirmed
+    // Only mark tasks as confirmed if they actually succeeded
     const updatedTasks = transcript.ai_extracted_tasks.map((t) => ({
       ...t,
-      confirmed: true,
+      confirmed: t.confirmed || succeededIds.has(t.id),
     }));
 
     setTranscripts((prev) =>
@@ -288,7 +294,13 @@ export function DealTranscriptsTab({ dealId, dealTitle }: Props) {
       ai_extracted_tasks: updatedTasks,
     });
 
-    toast.success(`Created ${successCount} tasks`);
+    if (successCount === unconfirmed.length) {
+      toast.success(`Created ${successCount} tasks`);
+    } else if (successCount > 0) {
+      toast.warning(`Created ${successCount}/${unconfirmed.length} tasks. Error: ${lastError}`);
+    } else {
+      toast.error(`Failed to create tasks: ${lastError}`);
+    }
     router.refresh(); // Update task counts & sibling tabs
   };
 
