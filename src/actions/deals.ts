@@ -102,7 +102,32 @@ export async function updateDeal(input: unknown): Promise<ActionResponse<Tables<
       .select()
       .single();
 
-    if (error) return { success: false, error: error.message };
+    if (error) {
+      // If the error is about missing columns (migration not applied), retry without those fields
+      if (error.message.includes("schema cache") || error.message.includes("column")) {
+        const safeUpdates = { ...updates };
+        // Strip fields that may not exist yet
+        delete (safeUpdates as Record<string, unknown>).revenue_start_date;
+        delete (safeUpdates as Record<string, unknown>).revenue_end_date;
+
+        const { data: retryData, error: retryError } = await admin
+          .from("deals")
+          .update(safeUpdates)
+          .eq("id", id)
+          .eq("workspace_id", ctx.workspaceId)
+          .select()
+          .single();
+
+        if (retryError) return { success: false, error: retryError.message };
+
+        revalidatePath("/deals");
+        revalidatePath(`/deals/${id}`);
+        revalidatePath("/dashboard");
+        revalidatePath("/reports");
+        return { success: true, data: retryData };
+      }
+      return { success: false, error: error.message };
+    }
 
     revalidatePath("/deals");
     revalidatePath(`/deals/${id}`);
@@ -205,6 +230,20 @@ export async function getDealWithRelations(id: string): Promise<ActionResponse<R
       admin.from("deal_contacts").select("id", { count: "exact", head: true }).eq("deal_id", id),
     ]);
 
+    // These tables may not exist yet (migrations 00019/00020)
+    let revenueItemsCount = 0;
+    let transcriptsCount = 0;
+    try {
+      const [revenueItemsResult, transcriptsResult] = await Promise.all([
+        admin.from("deal_revenue_items").select("id", { count: "exact", head: true }).eq("deal_id", id),
+        admin.from("deal_transcripts").select("id", { count: "exact", head: true }).eq("deal_id", id),
+      ]);
+      revenueItemsCount = revenueItemsResult.count ?? 0;
+      transcriptsCount = transcriptsResult.count ?? 0;
+    } catch {
+      // Tables don't exist yet
+    }
+
     return {
       success: true,
       data: {
@@ -215,6 +254,8 @@ export async function getDealWithRelations(id: string): Promise<ActionResponse<R
           files: filesResult.count ?? 0,
           events: eventsResult.count ?? 0,
           deal_contacts: dealContactsResult.count ?? 0,
+          revenue_items: revenueItemsCount,
+          transcripts: transcriptsCount,
         },
       },
     };

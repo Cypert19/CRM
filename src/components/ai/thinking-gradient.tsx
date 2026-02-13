@@ -21,7 +21,7 @@ export function ThinkingGradient() {
           className="absolute inset-0 rounded-full"
           style={{
             background:
-              "radial-gradient(circle at 40% 40%, #7C3AED, #06B6D4, #A855F7)",
+              "radial-gradient(circle at 40% 40%, #F97316, #FB923C, #FDBA74)",
             filter: "blur(20px)",
           }}
           animate={{
@@ -39,7 +39,7 @@ export function ThinkingGradient() {
           className="absolute left-1/2 top-1/2 h-8 w-8 -translate-x-1/2 -translate-y-1/2 rounded-full"
           style={{
             background:
-              "radial-gradient(circle, #A855F7, #06B6D4)",
+              "radial-gradient(circle, #FB923C, #F97316)",
             filter: "blur(4px)",
           }}
           animate={{

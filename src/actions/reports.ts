@@ -39,6 +39,20 @@ export type DealVelocityData = {
   monthly_velocity: { month: string; avg_days: number; deals_closed: number }[];
 };
 
+export type RevenueBreakdown = {
+  audit_fee: number;
+  retainer_monthly: number;
+  custom_dev_fee: number;
+};
+
+export type MonthlyRevenueData = {
+  month: string; // "Jan '25"
+  retainer: number;
+  audit_fee: number;
+  custom_dev_fee: number;
+  total: number;
+};
+
 export type ReportSummary = {
   pipeline_stages: PipelineStageReport[];
   deal_trends: DealTrend[];
@@ -49,25 +63,70 @@ export type ReportSummary = {
   total_lost_value: number;
   total_deals: number;
   conversion_rate: number;
+  revenue_breakdown: RevenueBreakdown;
+  won_revenue_breakdown: RevenueBreakdown;
+  pipeline_revenue_breakdown: RevenueBreakdown;
+  monthly_revenue: MonthlyRevenueData[];
 };
 
 export async function getReportData(): Promise<ActionResponse<ReportSummary>> {
   try {
     const ctx = await getWorkspaceContext();
-    if (!ctx) return { success: false, error: "No workspace found" };
+    if (!ctx) {
+      console.error("[reports] No workspace context found");
+      return { success: false, error: "No workspace found" };
+    }
 
     const admin = createAdminClient();
 
-    // Fetch all deals with stage info
-    const { data: deals, error: dealsError } = await admin
+    // Fetch all deals with stage info via explicit FK
+    // Try full query with revenue columns first; fall back if columns don't exist yet
+    const dealsResult = await admin
       .from("deals")
-      .select("id, value, source, created_at, closed_at, stage_id, pipeline_stages(name, color, is_won, is_lost, display_order)")
+      .select("id, value, audit_fee, retainer_monthly, custom_dev_fee, revenue_start_date, revenue_end_date, source, created_at, closed_at, stage_id, pipeline_stages!deals_stage_id_fkey(name, color, is_won, is_lost, display_order)")
       .eq("workspace_id", ctx.workspaceId)
       .is("deleted_at", null);
 
-    if (dealsError) return { success: false, error: dealsError.message };
+    let deals: typeof dealsResult.data = null;
+
+    if (dealsResult.error) {
+      // If the error is about missing columns, try without revenue columns
+      if (dealsResult.error.message.includes("schema cache") || dealsResult.error.message.includes("column")) {
+        console.warn("[reports] Revenue columns not found, querying without them:", dealsResult.error.message);
+        const fallbackResult = await admin
+          .from("deals")
+          .select("id, value, source, created_at, closed_at, stage_id, pipeline_stages!deals_stage_id_fkey(name, color, is_won, is_lost, display_order)")
+          .eq("workspace_id", ctx.workspaceId)
+          .is("deleted_at", null);
+
+        if (fallbackResult.error) {
+          console.error("[reports] Fallback deals query error:", fallbackResult.error.message);
+          return { success: false, error: fallbackResult.error.message };
+        }
+        // Add default values for missing revenue columns
+        deals = (fallbackResult.data ?? []).map((d) => ({
+          ...d,
+          audit_fee: 0,
+          retainer_monthly: 0,
+          custom_dev_fee: 0,
+          revenue_start_date: null,
+          revenue_end_date: null,
+        })) as unknown as typeof dealsResult.data;
+      } else {
+        console.error("[reports] Deals query error:", dealsResult.error.message);
+        return { success: false, error: dealsResult.error.message };
+      }
+    } else {
+      deals = dealsResult.data;
+    }
 
     const allDeals = deals ?? [];
+
+    console.log("[reports] Fetched", allDeals.length, "deals for workspace", ctx.workspaceId);
+    if (allDeals.length > 0) {
+      const firstDeal = allDeals[0];
+      console.log("[reports] Sample deal stage join:", JSON.stringify(firstDeal.pipeline_stages));
+    }
 
     // --- Pipeline by Stage ---
     const stageMap = new Map<string, PipelineStageReport>();
@@ -222,6 +281,84 @@ export async function getReportData(): Promise<ActionResponse<ReportSummary>> {
 
     const conversion_rate = allDeals.length > 0 ? Math.round((wonDeals.length / allDeals.length) * 100) : 0;
 
+    // --- Revenue Breakdown ---
+    const sumBreakdown = (deals: typeof allDeals): RevenueBreakdown => ({
+      audit_fee: deals.reduce((s, d) => s + Number(d.audit_fee ?? 0), 0),
+      retainer_monthly: deals.reduce((s, d) => s + Number(d.retainer_monthly ?? 0), 0),
+      custom_dev_fee: deals.reduce((s, d) => s + Number(d.custom_dev_fee ?? 0), 0),
+    });
+
+    const revenue_breakdown = sumBreakdown(allDeals);
+    const won_revenue_breakdown = sumBreakdown(wonDeals);
+    const pipeline_revenue_breakdown = sumBreakdown(openDeals);
+
+    // --- Monthly Revenue (last 12 months) ---
+    // Fetch all revenue item amendments for the workspace (table may not exist yet)
+    const amendmentMap = new Map<string, number>();
+    try {
+      const { data: revenueItems } = await admin
+        .from("deal_revenue_items")
+        .select("deal_id, month, item_type, amount")
+        .eq("workspace_id", ctx.workspaceId);
+
+      for (const ri of revenueItems ?? []) {
+        amendmentMap.set(`${ri.deal_id}|${ri.month}|${ri.item_type}`, Number(ri.amount));
+      }
+    } catch {
+      console.warn("[reports] deal_revenue_items table not accessible, skipping amendments");
+    }
+
+    // Only consider won deals with revenue dates for monthly tracking
+    const revenueDeals = wonDeals.filter((d) => d.revenue_start_date);
+
+    const monthly_revenue: MonthlyRevenueData[] = [];
+    for (let i = 11; i >= 0; i--) {
+      const monthDate = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const monthStr = `${monthDate.getFullYear()}-${String(monthDate.getMonth() + 1).padStart(2, "0")}-01`;
+      const monthLabel = monthDate.toLocaleDateString("en-US", { month: "short", year: "2-digit" });
+
+      let retainer = 0;
+      let audit = 0;
+      let customDev = 0;
+
+      for (const deal of revenueDeals) {
+        const startDate = deal.revenue_start_date as string;
+        const endDate = (deal.revenue_end_date as string | null) ?? monthStr; // Use current month as upper bound if no end
+
+        // Check if this month is within the deal's revenue range
+        if (monthStr < startDate || monthStr > endDate) continue;
+
+        // Determine if it's the first month of the deal
+        const isFirstMonth = monthStr === startDate;
+
+        // Retainer: amendment or default
+        const retainerKey = `${deal.id}|${monthStr}|retainer`;
+        retainer += amendmentMap.has(retainerKey)
+          ? amendmentMap.get(retainerKey)!
+          : Number(deal.retainer_monthly ?? 0);
+
+        // Audit: amendment or first-month default
+        const auditKey = `${deal.id}|${monthStr}|audit_fee`;
+        audit += amendmentMap.has(auditKey)
+          ? amendmentMap.get(auditKey)!
+          : isFirstMonth ? Number(deal.audit_fee ?? 0) : 0;
+
+        // Custom dev: amendment or first-month default
+        const customDevKey = `${deal.id}|${monthStr}|custom_dev_fee`;
+        customDev += amendmentMap.has(customDevKey)
+          ? amendmentMap.get(customDevKey)!
+          : isFirstMonth ? Number(deal.custom_dev_fee ?? 0) : 0;
+      }
+
+      monthly_revenue.push({
+        month: monthLabel,
+        retainer,
+        audit_fee: audit,
+        custom_dev_fee: customDev,
+        total: retainer + audit + customDev,
+      });
+    }
+
     return {
       success: true,
       data: {
@@ -234,6 +371,10 @@ export async function getReportData(): Promise<ActionResponse<ReportSummary>> {
         total_lost_value,
         total_deals: allDeals.length,
         conversion_rate,
+        revenue_breakdown,
+        won_revenue_breakdown,
+        pipeline_revenue_breakdown,
+        monthly_revenue,
       },
     };
   } catch (err) {

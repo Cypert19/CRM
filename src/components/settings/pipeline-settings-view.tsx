@@ -5,12 +5,27 @@ import { GlassCard } from "@/components/ui/glass-card";
 import { Button } from "@/components/ui/gradient-button";
 import { Input } from "@/components/ui/input";
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { ConfirmDeleteDialog } from "@/components/ui/confirm-delete-dialog";
+import {
+  createPipeline,
+  updatePipeline,
+  archivePipeline,
+} from "@/actions/pipelines";
+import {
   createPipelineStage,
   updatePipelineStage,
   deletePipelineStage,
 } from "@/actions/workspace";
 import { toast } from "sonner";
 import type { Tables } from "@/types/database";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   GripVertical,
   Plus,
@@ -20,6 +35,8 @@ import {
   X,
   Trophy,
   XCircle,
+  ChevronDown,
+  Archive,
 } from "lucide-react";
 
 type Pipeline = Tables<"pipelines"> & {
@@ -28,8 +45,8 @@ type Pipeline = Tables<"pipelines"> & {
 
 const STAGE_COLORS = [
   "#3B82F6", // blue
+  "#F97316", // orange
   "#8B5CF6", // violet
-  "#06B6D4", // cyan
   "#10B981", // green
   "#F59E0B", // amber
   "#EF4444", // red
@@ -37,51 +54,375 @@ const STAGE_COLORS = [
   "#6366F1", // indigo
 ];
 
-export function PipelineSettingsView({ pipelines }: { pipelines: Pipeline[] }) {
-  const pipeline = pipelines[0]; // For MVP, show the default pipeline
+// ─── Top-Level Component ──────────────────────────────────────────────────────
 
-  if (!pipeline) {
+export function PipelineSettingsView({ pipelines: initialPipelines }: { pipelines: Pipeline[] }) {
+  const [pipelines, setPipelines] = useState(initialPipelines);
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
+
+  const handlePipelineCreated = (newPipeline: Pipeline) => {
+    setPipelines((prev) => [...prev, newPipeline]);
+  };
+
+  const handlePipelineUpdated = (updated: Tables<"pipelines">) => {
+    setPipelines((prev) =>
+      prev.map((p) => (p.id === updated.id ? { ...p, ...updated } : p))
+    );
+  };
+
+  const handlePipelineArchived = (id: string) => {
+    setPipelines((prev) => prev.filter((p) => p.id !== id));
+  };
+
+  if (pipelines.length === 0) {
     return (
-      <GlassCard>
-        <p className="text-text-secondary">No pipelines found. Create a pipeline to get started.</p>
-      </GlassCard>
+      <div className="space-y-4">
+        <div className="flex justify-end">
+          <Button onClick={() => setShowCreateDialog(true)}>
+            <Plus className="h-4 w-4" />
+            Create Pipeline
+          </Button>
+        </div>
+        <GlassCard>
+          <p className="text-text-secondary">No pipelines found. Create a pipeline to get started.</p>
+        </GlassCard>
+        <CreatePipelineDialog
+          open={showCreateDialog}
+          onOpenChange={setShowCreateDialog}
+          onCreated={handlePipelineCreated}
+        />
+      </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      <GlassCard>
-        <div className="flex items-center justify-between">
-          <div>
-            <h3 className="text-sm font-semibold text-text-primary">{pipeline.name}</h3>
-            <p className="mt-1 text-xs text-text-tertiary">
-              {pipeline.description || "Configure the stages deals move through"}
-            </p>
-          </div>
-          {pipeline.is_default && (
-            <span className="rounded-full bg-accent-violet/20 px-2.5 py-0.5 text-xs font-medium text-accent-violet">
-              Default
-            </span>
-          )}
-        </div>
-      </GlassCard>
+    <div className="space-y-4">
+      <div className="flex justify-end">
+        <Button onClick={() => setShowCreateDialog(true)}>
+          <Plus className="h-4 w-4" />
+          Create Pipeline
+        </Button>
+      </div>
 
-      <PipelineStagesList
-        pipelineId={pipeline.id}
-        stages={pipeline.pipeline_stages?.sort((a, b) => a.display_order - b.display_order) ?? []}
+      {pipelines.map((pipeline) => (
+        <PipelineSection
+          key={pipeline.id}
+          pipeline={pipeline}
+          defaultExpanded={pipeline.is_default}
+          onUpdated={handlePipelineUpdated}
+          onArchived={handlePipelineArchived}
+        />
+      ))}
+
+      <CreatePipelineDialog
+        open={showCreateDialog}
+        onOpenChange={setShowCreateDialog}
+        onCreated={handlePipelineCreated}
       />
     </div>
   );
 }
 
+// ─── Create Pipeline Dialog ───────────────────────────────────────────────────
+
+function CreatePipelineDialog({
+  open,
+  onOpenChange,
+  onCreated,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onCreated: (pipeline: Pipeline) => void;
+}) {
+  const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async () => {
+    if (!name.trim()) return;
+    setLoading(true);
+
+    const result = await createPipeline({
+      name: name.trim(),
+      description: description.trim() || undefined,
+    });
+
+    setLoading(false);
+
+    if (result.success && result.data) {
+      toast.success("Pipeline created with Won & Lost stages");
+      onCreated(result.data);
+      setName("");
+      setDescription("");
+      onOpenChange(false);
+    } else {
+      toast.error(result.error || "Failed to create pipeline");
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>Create Pipeline</DialogTitle>
+          <DialogDescription>
+            Create a new deal pipeline. Won and Lost stages will be added automatically.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-4">
+          <Input
+            label="Pipeline Name"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="e.g., Enterprise Sales, Partnerships"
+            required
+            maxLength={100}
+          />
+          <div className="space-y-1.5">
+            <label className="block text-xs font-medium text-text-secondary">
+              Description <span className="text-text-tertiary">(optional)</span>
+            </label>
+            <textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Describe this pipeline's purpose..."
+              maxLength={500}
+              rows={2}
+              className="glass-panel-dense focus-ring w-full rounded-lg px-3 py-2 text-sm text-text-primary placeholder:text-text-tertiary resize-none"
+            />
+          </div>
+        </div>
+
+        <DialogFooter>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => onOpenChange(false)}
+            disabled={loading}
+          >
+            Cancel
+          </Button>
+          <Button
+            size="sm"
+            onClick={handleSubmit}
+            disabled={loading || !name.trim()}
+          >
+            <Plus className="h-3.5 w-3.5" />
+            {loading ? "Creating..." : "Create Pipeline"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ─── Pipeline Section (Collapsible) ──────────────────────────────────────────
+
+function PipelineSection({
+  pipeline,
+  defaultExpanded,
+  onUpdated,
+  onArchived,
+}: {
+  pipeline: Pipeline;
+  defaultExpanded: boolean;
+  onUpdated: (updated: Tables<"pipelines">) => void;
+  onArchived: (id: string) => void;
+}) {
+  const [expanded, setExpanded] = useState(defaultExpanded);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editName, setEditName] = useState(pipeline.name);
+  const [editDescription, setEditDescription] = useState(pipeline.description || "");
+  const [editLoading, setEditLoading] = useState(false);
+  const [showArchiveConfirm, setShowArchiveConfirm] = useState(false);
+
+  // Lift stages state here so it persists across collapse/expand cycles
+  const [stages, setStages] = useState(
+    [...(pipeline.pipeline_stages ?? [])].sort((a, b) => a.display_order - b.display_order)
+  );
+  const stageCount = stages.length;
+
+  const startEdit = () => {
+    setEditName(pipeline.name);
+    setEditDescription(pipeline.description || "");
+    setIsEditing(true);
+  };
+
+  const cancelEdit = () => {
+    setIsEditing(false);
+    setEditName(pipeline.name);
+    setEditDescription(pipeline.description || "");
+  };
+
+  const saveEdit = async () => {
+    if (!editName.trim()) return;
+    setEditLoading(true);
+
+    const result = await updatePipeline({
+      id: pipeline.id,
+      name: editName.trim(),
+      description: editDescription.trim() || undefined,
+    });
+
+    setEditLoading(false);
+
+    if (result.success && result.data) {
+      toast.success("Pipeline updated");
+      onUpdated(result.data);
+      setIsEditing(false);
+    } else {
+      toast.error(result.error || "Failed to update pipeline");
+    }
+  };
+
+  const handleArchive = async () => {
+    const result = await archivePipeline(pipeline.id);
+    if (result.success) {
+      toast.success("Pipeline archived");
+      onArchived(pipeline.id);
+    } else {
+      toast.error(result.error || "Failed to archive pipeline");
+    }
+  };
+
+  return (
+    <div className="space-y-3">
+      {/* Pipeline Header */}
+      <GlassCard>
+        {isEditing ? (
+          /* Inline Edit Mode */
+          <div className="space-y-3">
+            <Input
+              label="Pipeline Name"
+              value={editName}
+              onChange={(e) => setEditName(e.target.value)}
+              placeholder="Pipeline name"
+              maxLength={100}
+              required
+            />
+            <div className="space-y-1.5">
+              <label className="block text-xs font-medium text-text-secondary">
+                Description
+              </label>
+              <textarea
+                value={editDescription}
+                onChange={(e) => setEditDescription(e.target.value)}
+                placeholder="Pipeline description..."
+                maxLength={500}
+                rows={2}
+                className="glass-panel-dense focus-ring w-full rounded-lg px-3 py-2 text-sm text-text-primary placeholder:text-text-tertiary resize-none"
+              />
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button variant="ghost" size="sm" onClick={cancelEdit} disabled={editLoading}>
+                <X className="h-3.5 w-3.5" />
+                Cancel
+              </Button>
+              <Button size="sm" onClick={saveEdit} disabled={editLoading || !editName.trim()}>
+                <Check className="h-3.5 w-3.5" />
+                {editLoading ? "Saving..." : "Save"}
+              </Button>
+            </div>
+          </div>
+        ) : (
+          /* View Mode — Clickable header */
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => setExpanded(!expanded)}
+              className="flex flex-1 items-center gap-3 text-left min-w-0"
+            >
+              <motion.div
+                animate={{ rotate: expanded ? 0 : -90 }}
+                transition={{ duration: 0.15 }}
+              >
+                <ChevronDown className="h-4 w-4 text-text-tertiary shrink-0" />
+              </motion.div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-semibold text-text-primary truncate">
+                    {pipeline.name}
+                  </span>
+                  {pipeline.is_default && (
+                    <span className="rounded-full bg-accent-violet/20 px-2 py-0.5 text-[10px] font-medium text-accent-violet shrink-0">
+                      Default
+                    </span>
+                  )}
+                  <span className="text-[10px] text-text-tertiary shrink-0">
+                    {stageCount} {stageCount === 1 ? "stage" : "stages"}
+                  </span>
+                </div>
+                {pipeline.description && (
+                  <p className="mt-0.5 text-xs text-text-tertiary truncate">
+                    {pipeline.description}
+                  </p>
+                )}
+              </div>
+            </button>
+
+            <div className="flex items-center gap-1 shrink-0">
+              <Button variant="ghost" size="icon" onClick={startEdit}>
+                <Pencil className="h-3.5 w-3.5" />
+              </Button>
+              {!pipeline.is_default && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setShowArchiveConfirm(true)}
+                >
+                  <Archive className="h-3.5 w-3.5 text-signal-danger" />
+                </Button>
+              )}
+            </div>
+          </div>
+        )}
+      </GlassCard>
+
+      {/* Collapsible Stages List */}
+      <AnimatePresence initial={false}>
+        {expanded && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.2 }}
+            style={{ overflow: "hidden" }}
+          >
+            <PipelineStagesList
+              pipelineId={pipeline.id}
+              stages={stages}
+              onStagesChange={setStages}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Archive Confirmation */}
+      <ConfirmDeleteDialog
+        open={showArchiveConfirm}
+        onOpenChange={setShowArchiveConfirm}
+        title="Archive Pipeline"
+        description="This pipeline and its stages will be archived. Pipelines with active deals cannot be archived."
+        entityName={pipeline.name}
+        onConfirm={handleArchive}
+      />
+    </div>
+  );
+}
+
+// ─── Pipeline Stages List (existing — unchanged logic) ────────────────────────
+
 function PipelineStagesList({
   pipelineId,
-  stages: initialStages,
+  stages,
+  onStagesChange,
 }: {
   pipelineId: string;
   stages: Tables<"pipeline_stages">[];
+  onStagesChange: (stages: Tables<"pipeline_stages">[]) => void;
 }) {
-  const [stages, setStages] = useState(initialStages);
+  const setStages = onStagesChange;
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
   const [editColor, setEditColor] = useState("");
@@ -119,8 +460,8 @@ function PipelineStagesList({
 
     setLoading(false);
     if (result.success && result.data) {
-      setStages((prev) =>
-        prev.map((s) => (s.id === editingId ? { ...s, ...result.data } : s))
+      setStages(
+        stages.map((s) => (s.id === editingId ? { ...s, ...result.data } : s))
       );
       toast.success("Stage updated");
       cancelEdit();
@@ -143,7 +484,7 @@ function PipelineStagesList({
 
     setLoading(false);
     if (result.success && result.data) {
-      setStages((prev) => [...prev, result.data!]);
+      setStages([...stages, result.data!]);
       toast.success("Stage created");
       setNewName("");
       setNewColor(STAGE_COLORS[0]);
@@ -168,7 +509,7 @@ function PipelineStagesList({
     setLoading(false);
 
     if (result.success) {
-      setStages((prev) => prev.filter((s) => s.id !== id));
+      setStages(stages.filter((s) => s.id !== id));
       toast.success("Stage deleted");
     } else {
       toast.error(result.error || "Failed to delete stage");

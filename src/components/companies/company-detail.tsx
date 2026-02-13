@@ -10,6 +10,7 @@ import {
   Pencil,
   X,
   Check,
+  Trash2,
   Building2,
   Users,
   DollarSign,
@@ -19,6 +20,7 @@ import {
 } from "lucide-react";
 import { GlassCard } from "@/components/ui/glass-card";
 import { Button } from "@/components/ui/gradient-button";
+import { ConfirmDeleteDialog } from "@/components/ui/confirm-delete-dialog";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -28,7 +30,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { formatRelativeTime } from "@/lib/utils";
-import { updateCompany } from "@/actions/companies";
+import { updateCompany, deleteCompany } from "@/actions/companies";
+import { useWorkspace } from "@/hooks/use-workspace";
+import { useUser } from "@/hooks/use-user";
 import { toast } from "sonner";
 import type { Tables } from "@/types/database";
 
@@ -37,9 +41,24 @@ const REVENUE_RANGES = ["<$1M", "$1M-$10M", "$10M-$50M", "$50M-$100M", "$100M-$5
 
 export function CompanyDetail({ company: initialCompany }: { company: Tables<"companies"> }) {
   const router = useRouter();
+  const { role } = useWorkspace();
+  const { userId } = useUser();
   const [company, setCompany] = useState(initialCompany);
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+
+  const canDelete = role === "Admin" || (company.owner_id != null && userId === company.owner_id);
+
+  const handleDelete = async () => {
+    const result = await deleteCompany(company.id);
+    if (result.success) {
+      toast.success("Company deleted successfully");
+      router.push("/companies");
+    } else {
+      toast.error(result.error || "Failed to delete company");
+    }
+  };
 
   const [companyName, setCompanyName] = useState(company.company_name);
   const [domain, setDomain] = useState(company.domain || "");
@@ -114,9 +133,22 @@ export function CompanyDetail({ company: initialCompany }: { company: Tables<"co
           <ArrowLeft className="h-4 w-4" />Back to Companies
         </Link>
         {!editing ? (
-          <Button onClick={startEdit} variant="secondary" size="sm">
-            <Pencil className="h-3.5 w-3.5" />Edit Company
-          </Button>
+          <div className="flex items-center gap-2">
+            {canDelete && (
+              <Button
+                onClick={() => setShowDeleteDialog(true)}
+                variant="ghost"
+                size="sm"
+                className="text-signal-danger hover:bg-signal-danger/10"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+                Delete
+              </Button>
+            )}
+            <Button onClick={startEdit} variant="secondary" size="sm">
+              <Pencil className="h-3.5 w-3.5" />Edit Company
+            </Button>
+          </div>
         ) : (
           <div className="flex items-center gap-2">
             <Button onClick={cancelEdit} variant="ghost" size="sm" disabled={saving}><X className="h-3.5 w-3.5" />Cancel</Button>
@@ -227,6 +259,15 @@ export function CompanyDetail({ company: initialCompany }: { company: Tables<"co
           </GlassCard>
         </div>
       </div>
+
+      <ConfirmDeleteDialog
+        open={showDeleteDialog}
+        onOpenChange={setShowDeleteDialog}
+        title="Delete Company"
+        description="Are you sure you want to delete this company? Associated contacts and deals will remain but will no longer be linked."
+        entityName={company.company_name}
+        onConfirm={handleDelete}
+      />
     </div>
   );
 }

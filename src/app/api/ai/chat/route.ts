@@ -1,11 +1,13 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getAnthropicClient } from "@/lib/ai/client";
-import { NEXUS_AI_SYSTEM_PROMPT } from "@/lib/ai/prompts";
+import { NEXUS_AI_SYSTEM_PROMPT, FOCUS_MODE_SYSTEM_PROMPT } from "@/lib/ai/prompts";
 import { assembleContext } from "@/lib/ai/context";
+import { getFocusTaskContext } from "@/actions/focus";
+import { assembleTaskContext } from "@/lib/ai/focus-context";
 
 export const runtime = "nodejs";
-export const maxDuration = 30;
+export const maxDuration = 60;
 
 export async function POST(request: Request) {
   try {
@@ -18,7 +20,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { messages } = await request.json();
+    const { messages, focusTaskId } = await request.json();
 
     if (!messages || !Array.isArray(messages)) {
       return NextResponse.json(
@@ -27,10 +29,23 @@ export async function POST(request: Request) {
       );
     }
 
-    // Assemble CRM context
-    const crmContext = await assembleContext();
+    // Assemble context — focus mode uses deep task context, normal uses CRM context
+    let systemPrompt: string;
 
-    const systemPrompt = `${NEXUS_AI_SYSTEM_PROMPT}\n\n${crmContext}`;
+    if (focusTaskId) {
+      const taskCtx = await getFocusTaskContext(focusTaskId);
+      if (taskCtx.success && taskCtx.data) {
+        const taskContext = assembleTaskContext(taskCtx.data);
+        systemPrompt = `${FOCUS_MODE_SYSTEM_PROMPT}\n\n${taskContext}`;
+      } else {
+        // Fallback to normal CRM context if task fetch fails
+        const crmContext = await assembleContext();
+        systemPrompt = `${NEXUS_AI_SYSTEM_PROMPT}\n\n${crmContext}`;
+      }
+    } else {
+      const crmContext = await assembleContext();
+      systemPrompt = `${NEXUS_AI_SYSTEM_PROMPT}\n\n${crmContext}`;
+    }
 
     const anthropic = getAnthropicClient();
 

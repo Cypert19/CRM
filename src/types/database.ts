@@ -253,6 +253,11 @@ export type Database = {
           competitor: string | null;
           deal_industry: "technology" | "healthcare" | "finance" | "manufacturing" | "retail" | "education" | "consulting" | "real_estate" | "other" | null;
           company_size: "1-10" | "11-50" | "51-200" | "201-500" | "501-1000" | "1000+" | null;
+          audit_fee: number;
+          retainer_monthly: number;
+          custom_dev_fee: number;
+          revenue_start_date: string | null;
+          revenue_end_date: string | null;
           closed_at: string | null;
           custom_fields: Json;
           deleted_at: string | null;
@@ -265,6 +270,11 @@ export type Database = {
           workspace_id: string;
           title: string;
           value?: number;
+          audit_fee?: number;
+          retainer_monthly?: number;
+          custom_dev_fee?: number;
+          revenue_start_date?: string | null;
+          revenue_end_date?: string | null;
           currency?: string;
           stage_id: string;
           pipeline_id: string;
@@ -299,6 +309,11 @@ export type Database = {
           workspace_id?: string;
           title?: string;
           value?: number;
+          audit_fee?: number;
+          retainer_monthly?: number;
+          custom_dev_fee?: number;
+          revenue_start_date?: string | null;
+          revenue_end_date?: string | null;
           currency?: string;
           stage_id?: string;
           pipeline_id?: string;
@@ -767,7 +782,7 @@ export type Database = {
           creator_id: string;
           deal_id: string | null;
           contact_id: string | null;
-          task_type: "Call" | "Email" | "Meeting" | "Follow-Up" | "Demo" | "Proposal" | "Other" | null;
+          task_type: "Call" | "Email" | "Meeting" | "Follow-Up" | "Demo" | "Proposal" | "Automations" | "Website Development" | "Custom Development" | "Training" | "Consulting" | "Other" | null;
           reminder_at: string | null;
           completed_at: string | null;
           notes: string | null;
@@ -882,6 +897,8 @@ export type Database = {
           company_id: string | null;
           description: string | null;
           tags: string[];
+          category: string | null;
+          extracted_text: string | null;
           created_at: string;
         };
         Insert: {
@@ -897,6 +914,8 @@ export type Database = {
           company_id?: string | null;
           description?: string | null;
           tags?: string[];
+          category?: string | null;
+          extracted_text?: string | null;
           created_at?: string;
         };
         Update: {
@@ -912,6 +931,8 @@ export type Database = {
           company_id?: string | null;
           description?: string | null;
           tags?: string[];
+          category?: string | null;
+          extracted_text?: string | null;
           created_at?: string;
         };
         Relationships: [
@@ -1129,8 +1150,243 @@ export type Database = {
           },
         ];
       };
+      deal_revenue_items: {
+        Row: {
+          id: string;
+          workspace_id: string;
+          deal_id: string;
+          month: string;
+          item_type: "retainer" | "audit_fee" | "custom_dev_fee";
+          amount: number;
+          notes: string | null;
+          created_by: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          workspace_id: string;
+          deal_id: string;
+          month: string;
+          item_type: "retainer" | "audit_fee" | "custom_dev_fee";
+          amount: number;
+          notes?: string | null;
+          created_by: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          workspace_id?: string;
+          deal_id?: string;
+          month?: string;
+          item_type?: "retainer" | "audit_fee" | "custom_dev_fee";
+          amount?: number;
+          notes?: string | null;
+          created_by?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "deal_revenue_items_workspace_id_fkey";
+            columns: ["workspace_id"];
+            isOneToOne: false;
+            referencedRelation: "workspaces";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "deal_revenue_items_deal_id_fkey";
+            columns: ["deal_id"];
+            isOneToOne: false;
+            referencedRelation: "deals";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "deal_revenue_items_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      deal_transcripts: {
+        Row: {
+          id: string;
+          workspace_id: string;
+          deal_id: string;
+          title: string;
+          transcript_text: string;
+          ai_extracted_tasks: unknown;
+          status: "pending" | "processing" | "completed" | "failed";
+          created_by: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          workspace_id: string;
+          deal_id: string;
+          title?: string;
+          transcript_text: string;
+          ai_extracted_tasks?: unknown;
+          status?: "pending" | "processing" | "completed" | "failed";
+          created_by: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          workspace_id?: string;
+          deal_id?: string;
+          title?: string;
+          transcript_text?: string;
+          ai_extracted_tasks?: unknown;
+          status?: "pending" | "processing" | "completed" | "failed";
+          created_by?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "deal_transcripts_workspace_id_fkey";
+            columns: ["workspace_id"];
+            isOneToOne: false;
+            referencedRelation: "workspaces";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "deal_transcripts_deal_id_fkey";
+            columns: ["deal_id"];
+            isOneToOne: false;
+            referencedRelation: "deals";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "deal_transcripts_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      custom_dashboards: {
+        Row: {
+          id: string;
+          workspace_id: string;
+          user_id: string;
+          name: string;
+          description: string | null;
+          is_default: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          workspace_id: string;
+          user_id: string;
+          name?: string;
+          description?: string | null;
+          is_default?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          workspace_id?: string;
+          user_id?: string;
+          name?: string;
+          description?: string | null;
+          is_default?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "custom_dashboards_workspace_id_fkey";
+            columns: ["workspace_id"];
+            isOneToOne: false;
+            referencedRelation: "workspaces";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "custom_dashboards_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      dashboard_tiles: {
+        Row: {
+          id: string;
+          dashboard_id: string;
+          workspace_id: string;
+          title: string;
+          tile_type: string;
+          grid_x: number;
+          grid_y: number;
+          grid_w: number;
+          grid_h: number;
+          display_order: number;
+          config: Json;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          dashboard_id: string;
+          workspace_id: string;
+          title?: string;
+          tile_type: string;
+          grid_x?: number;
+          grid_y?: number;
+          grid_w?: number;
+          grid_h?: number;
+          display_order?: number;
+          config?: Json;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          dashboard_id?: string;
+          workspace_id?: string;
+          title?: string;
+          tile_type?: string;
+          grid_x?: number;
+          grid_y?: number;
+          grid_w?: number;
+          grid_h?: number;
+          display_order?: number;
+          config?: Json;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "dashboard_tiles_dashboard_id_fkey";
+            columns: ["dashboard_id"];
+            isOneToOne: false;
+            referencedRelation: "custom_dashboards";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "dashboard_tiles_workspace_id_fkey";
+            columns: ["workspace_id"];
+            isOneToOne: false;
+            referencedRelation: "workspaces";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
     };
+    // eslint-disable-next-line @typescript-eslint/no-empty-object-type
     Views: {};
+    // eslint-disable-next-line @typescript-eslint/no-empty-object-type
     Functions: {};
     Enums: {
       user_role: "Admin" | "Manager" | "Member";
@@ -1141,12 +1397,13 @@ export type Database = {
       contact_role: "Decision Maker" | "Champion" | "Influencer" | "Blocker" | "End User";
       task_status: "To Do" | "In Progress" | "Done" | "Cancelled";
       task_priority: "Low" | "Medium" | "High" | "Urgent";
-      task_type: "Call" | "Email" | "Meeting" | "Follow-Up" | "Demo" | "Proposal" | "Other";
+      task_type: "Call" | "Email" | "Meeting" | "Follow-Up" | "Demo" | "Proposal" | "Automations" | "Website Development" | "Custom Development" | "Training" | "Consulting" | "Other";
       activity_type: "deal_created" | "deal_updated" | "deal_stage_changed" | "deal_won" | "deal_lost" | "contact_created" | "contact_updated" | "company_created" | "company_updated" | "note_created" | "task_created" | "task_completed" | "file_uploaded" | "file_deleted" | "email_logged" | "call_logged" | "meeting_logged";
       custom_field_type: "Text" | "Long Text" | "Number" | "Currency" | "Date" | "DateTime" | "Single Select" | "Multi Select" | "Checkbox" | "URL" | "Email" | "Phone" | "User" | "Rating";
       custom_field_entity: "Deal" | "Contact" | "Company";
       notification_channel: "realtime" | "daily" | "weekly" | "off";
     };
+    // eslint-disable-next-line @typescript-eslint/no-empty-object-type
     CompositeTypes: {};
   };
 };

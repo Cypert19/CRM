@@ -10,7 +10,7 @@ export default async function PipelineSettingsPage() {
 
   return (
     <>
-      <PageHeader title="Pipeline Settings" description="Configure your deal pipeline stages" />
+      <PageHeader title="Pipeline Settings" description="Manage your deal pipelines and stages" />
       <div className="mt-6">
         <PipelineSettingsView pipelines={pipelines} />
       </div>

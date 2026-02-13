@@ -38,12 +38,12 @@ export function ReportKPICard({
         {/* Ambient background glow */}
         <div className="absolute -top-8 -right-8 h-24 w-24 rounded-full opacity-10 blur-2xl"
           style={{
-            background: glow === "violet" ? "#7C3AED"
-              : glow === "cyan" ? "#06B6D4"
+            background: glow === "violet" ? "#F97316"
+              : glow === "cyan" ? "#F97316"
               : glow === "success" ? "#10B981"
               : glow === "danger" ? "#F43F5E"
               : glow === "warning" ? "#F59E0B"
-              : "#7C3AED",
+              : "#F97316",
           }}
         />
 

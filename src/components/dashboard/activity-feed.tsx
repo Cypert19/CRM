@@ -70,12 +70,12 @@ export function ActivityFeed({ activities }: { activities: Activity[] }) {
                       {user?.full_name ?? "Someone"}
                     </span>{" "}
                     {label}
-                    {activity.metadata?.title && (
+                    {activity.metadata?.title ? (
                       <span className="font-medium text-text-primary">
                         {" "}
                         &quot;{String(activity.metadata.title)}&quot;
                       </span>
-                    )}
+                    ) : null}
                   </p>
                   <span className="text-xs text-text-tertiary">
                     {formatRelativeTime(activity.created_at)}

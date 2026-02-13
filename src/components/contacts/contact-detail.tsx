@@ -10,6 +10,7 @@ import {
   Pencil,
   X,
   Check,
+  Trash2,
   Briefcase,
   MapPin,
   Linkedin,
@@ -22,6 +23,7 @@ import { GlassCard } from "@/components/ui/glass-card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/gradient-button";
+import { ConfirmDeleteDialog } from "@/components/ui/confirm-delete-dialog";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -31,7 +33,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { formatRelativeTime } from "@/lib/utils";
-import { updateContact } from "@/actions/contacts";
+import { updateContact, deleteContact } from "@/actions/contacts";
+import { useWorkspace } from "@/hooks/use-workspace";
+import { useUser } from "@/hooks/use-user";
 import { toast } from "sonner";
 import type { Tables } from "@/types/database";
 
@@ -40,9 +44,24 @@ const SOURCES = ["Inbound", "Outbound", "Referral", "Partner", "Event", "Website
 
 export function ContactDetail({ contact: initialContact }: { contact: Tables<"contacts"> }) {
   const router = useRouter();
+  const { role } = useWorkspace();
+  const { userId } = useUser();
   const [contact, setContact] = useState(initialContact);
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+
+  const canDelete = role === "Admin" || (contact.owner_id != null && userId === contact.owner_id);
+
+  const handleDelete = async () => {
+    const result = await deleteContact(contact.id);
+    if (result.success) {
+      toast.success("Contact deleted successfully");
+      router.push("/contacts");
+    } else {
+      toast.error(result.error || "Failed to delete contact");
+    }
+  };
 
   const [firstName, setFirstName] = useState(contact.first_name);
   const [lastName, setLastName] = useState(contact.last_name);
@@ -131,9 +150,22 @@ export function ContactDetail({ contact: initialContact }: { contact: Tables<"co
           <ArrowLeft className="h-4 w-4" />Back to Contacts
         </Link>
         {!editing ? (
-          <Button onClick={startEdit} variant="secondary" size="sm">
-            <Pencil className="h-3.5 w-3.5" />Edit Contact
-          </Button>
+          <div className="flex items-center gap-2">
+            {canDelete && (
+              <Button
+                onClick={() => setShowDeleteDialog(true)}
+                variant="ghost"
+                size="sm"
+                className="text-signal-danger hover:bg-signal-danger/10"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+                Delete
+              </Button>
+            )}
+            <Button onClick={startEdit} variant="secondary" size="sm">
+              <Pencil className="h-3.5 w-3.5" />Edit Contact
+            </Button>
+          </div>
         ) : (
           <div className="flex items-center gap-2">
             <Button onClick={cancelEdit} variant="ghost" size="sm" disabled={saving}><X className="h-3.5 w-3.5" />Cancel</Button>
@@ -254,6 +286,15 @@ export function ContactDetail({ contact: initialContact }: { contact: Tables<"co
           )}
         </div>
       </div>
+
+      <ConfirmDeleteDialog
+        open={showDeleteDialog}
+        onOpenChange={setShowDeleteDialog}
+        title="Delete Contact"
+        description="Are you sure you want to delete this contact? Associated deals and notes will remain but will no longer be linked."
+        entityName={`${contact.first_name} ${contact.last_name}`}
+        onConfirm={handleDelete}
+      />
     </div>
   );
 }

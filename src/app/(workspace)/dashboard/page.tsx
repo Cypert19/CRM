@@ -131,7 +131,8 @@ export default async function DashboardPage() {
       <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2 space-y-6">
           <PipelineFunnel stages={funnelStages} />
-          <ActivityFeed activities={(activities as unknown[]) ?? []} />
+          {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+          <ActivityFeed activities={(activities as any) ?? []} />
         </div>
         <div>
           <AIInsightsPanel insights={insights} />

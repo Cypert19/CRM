@@ -121,6 +121,11 @@ export const TASK_TYPES = [
   "Follow-Up",
   "Demo",
   "Proposal",
+  "Automations",
+  "Website Development",
+  "Custom Development",
+  "Training",
+  "Consulting",
   "Other",
 ] as const;
 export type TaskType = (typeof TASK_TYPES)[number];

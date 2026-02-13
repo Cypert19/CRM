@@ -13,6 +13,7 @@ import {
   FileText,
   ChevronDown,
 } from "lucide-react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { useUIStore } from "@/stores/ui-store";
@@ -148,6 +149,19 @@ export function Topbar() {
         >
           <LogOut className="h-4 w-4" />
         </button>
+
+        {/* Avolis Logo */}
+        <div className="ml-2 flex items-center border-l border-border-glass pl-4">
+          <Image
+            src="/avolis-wordmark.png"
+            alt="Avolis"
+            width={480}
+            height={270}
+            className="h-14 w-auto object-contain"
+            style={{ mixBlendMode: "screen" }}
+            priority
+          />
+        </div>
       </div>
     </header>
   );

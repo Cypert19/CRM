@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 
 type AnimatedCounterProps = {
@@ -17,12 +17,12 @@ export function AnimatedCounter({
   className = "",
 }: AnimatedCounterProps) {
   const [displayed, setDisplayed] = useState(0);
-  const ref = useRef<HTMLSpanElement>(null);
-  const hasAnimated = useRef(false);
 
   useEffect(() => {
-    if (hasAnimated.current) return;
-    hasAnimated.current = true;
+    if (value === 0) {
+      setDisplayed(0);
+      return;
+    }
 
     const steps = 60;
     const stepDuration = (duration * 1000) / steps;
@@ -40,7 +40,9 @@ export function AnimatedCounter({
       }
     }, stepDuration);
 
-    return () => clearInterval(timer);
+    return () => {
+      clearInterval(timer);
+    };
   }, [value, duration]);
 
   const formatValue = (v: number) => {
@@ -60,7 +62,6 @@ export function AnimatedCounter({
 
   return (
     <motion.span
-      ref={ref}
       className={className}
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}

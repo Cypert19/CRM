@@ -8,6 +8,7 @@ import { AIPanel } from "@/components/ai/ai-panel";
 import { CommandPalette } from "@/components/ui/command-palette";
 import { WorkspaceGuard } from "@/components/workspace-guard";
 import { QuickCreateProvider } from "@/components/layout/quick-create-provider";
+import { FocusModeOverlay } from "@/components/focus/focus-mode-overlay";
 
 export default function WorkspaceLayout({
   children,
@@ -24,6 +25,7 @@ export default function WorkspaceLayout({
         <Topbar />
         <CommandPalette />
         <AIPanel />
+        <FocusModeOverlay />
         <main
           className={cn(
             "pt-16 transition-[margin-left] duration-200",

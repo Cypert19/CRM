@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -34,7 +34,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { formatCurrency, formatRelativeTime } from "@/lib/utils";
-import { updateDeal } from "@/actions/deals";
+import { updateDeal, moveDealStage } from "@/actions/deals";
 import {
   DEAL_PRIORITIES,
   DEAL_SOURCES,
@@ -56,19 +56,36 @@ type DealWithRelations = Tables<"deals"> & {
   pipeline_stages?: { id: string; name: string; color: string; is_won: boolean; is_lost: boolean } | null;
 };
 
+type PipelineWithStages = Tables<"pipelines"> & { pipeline_stages: Tables<"pipeline_stages">[] };
+
 type Props = {
   deal: DealWithRelations;
   editing: boolean;
   onDealUpdate: (deal: DealWithRelations) => void;
+  pipelineStages?: Tables<"pipeline_stages">[];
+  allPipelines?: PipelineWithStages[];
 };
 
-export function DealOverviewTab({ deal, editing, onDealUpdate }: Props) {
+export function DealOverviewTab({ deal, editing, onDealUpdate, pipelineStages = [], allPipelines = [] }: Props) {
   const router = useRouter();
   const [saving, setSaving] = useState(false);
 
   // Edit state - all fields
   const [title, setTitle] = useState(deal.title);
-  const [value, setValue] = useState(String(deal.value));
+  const [auditFee, setAuditFee] = useState(String(deal.audit_fee ?? 0));
+  const [retainerMonthly, setRetainerMonthly] = useState(String(deal.retainer_monthly ?? 0));
+  const [customDevFee, setCustomDevFee] = useState(String(deal.custom_dev_fee ?? 0));
+  const [pipelineId, setPipelineId] = useState(deal.pipeline_id);
+  const [stageId, setStageId] = useState(deal.stage_id);
+
+  // Compute available stages based on selected pipeline
+  const availableStages = (() => {
+    if (allPipelines.length > 0) {
+      const selectedPipeline = allPipelines.find((p) => p.id === pipelineId);
+      return (selectedPipeline?.pipeline_stages ?? []).sort((a, b) => a.display_order - b.display_order);
+    }
+    return [...pipelineStages].sort((a, b) => a.display_order - b.display_order);
+  })();
   const [description, setDescription] = useState(deal.description || "");
   const [priority, setPriority] = useState(deal.priority || "");
   const [source, setSource] = useState(deal.source || "");
@@ -83,13 +100,60 @@ export function DealOverviewTab({ deal, editing, onDealUpdate }: Props) {
   const [competitor, setCompetitor] = useState(deal.competitor || "");
   const [dealIndustry, setDealIndustry] = useState(deal.deal_industry || "");
   const [companySize, setCompanySize] = useState(deal.company_size || "");
+  const [revenueStartDate, setRevenueStartDate] = useState(deal.revenue_start_date || "");
+  const [revenueEndDate, setRevenueEndDate] = useState(deal.revenue_end_date || "");
   const [winReason, setWinReason] = useState(deal.win_reason || "");
   const [lostReason, setLostReason] = useState(deal.lost_reason || "");
+
+  // Contact & Company edit state
+  const NONE_VALUE = "__none__";
+  const [contactId, setContactId] = useState(deal.contact_id || NONE_VALUE);
+  const [companyId, setCompanyId] = useState(deal.company_id || NONE_VALUE);
+  const [contactsList, setContactsList] = useState<{ id: string; first_name: string; last_name: string; email: string | null }[]>([]);
+  const [companiesList, setCompaniesList] = useState<{ id: string; company_name: string }[]>([]);
+  const [loadingLists, setLoadingLists] = useState(false);
+
+  // Lazy-fetch contacts & companies when entering edit mode
+  useEffect(() => {
+    if (!editing) return;
+    let cancelled = false;
+    (async () => {
+      setLoadingLists(true);
+      try {
+        const [{ getContacts }, { getCompanies }] = await Promise.all([
+          import("@/actions/contacts"),
+          import("@/actions/companies"),
+        ]);
+        const [contactsRes, companiesRes] = await Promise.all([getContacts(), getCompanies()]);
+        if (cancelled) return;
+        if (contactsRes.success && contactsRes.data) {
+          setContactsList(
+            (contactsRes.data as unknown as { id: string; first_name: string; last_name: string; email: string | null }[])
+              .map((c) => ({ id: c.id, first_name: c.first_name, last_name: c.last_name, email: c.email }))
+          );
+        }
+        if (companiesRes.success && companiesRes.data) {
+          setCompaniesList(
+            (companiesRes.data as unknown as { id: string; company_name: string }[])
+              .map((c) => ({ id: c.id, company_name: c.company_name }))
+          );
+        }
+      } catch {
+        // Silently fail — selectors will just be empty
+      }
+      if (!cancelled) setLoadingLists(false);
+    })();
+    return () => { cancelled = true; };
+  }, [editing]);
 
   // Reset edit state when starting edit
   const resetEditState = () => {
     setTitle(deal.title);
-    setValue(String(deal.value));
+    setAuditFee(String(deal.audit_fee ?? 0));
+    setRetainerMonthly(String(deal.retainer_monthly ?? 0));
+    setCustomDevFee(String(deal.custom_dev_fee ?? 0));
+    setPipelineId(deal.pipeline_id);
+    setStageId(deal.stage_id);
     setDescription(deal.description || "");
     setPriority(deal.priority || "");
     setSource(deal.source || "");
@@ -103,6 +167,10 @@ export function DealOverviewTab({ deal, editing, onDealUpdate }: Props) {
     setCompetitor(deal.competitor || "");
     setDealIndustry(deal.deal_industry || "");
     setCompanySize(deal.company_size || "");
+    setRevenueStartDate(deal.revenue_start_date || "");
+    setRevenueEndDate(deal.revenue_end_date || "");
+    setContactId(deal.contact_id || NONE_VALUE);
+    setCompanyId(deal.company_id || NONE_VALUE);
     setWinReason(deal.win_reason || "");
     setLostReason(deal.lost_reason || "");
   };
@@ -116,10 +184,35 @@ export function DealOverviewTab({ deal, editing, onDealUpdate }: Props) {
     if (!title.trim()) { toast.error("Title is required"); return; }
     setSaving(true);
 
+    // If stage changed, use moveDealStage (handles closed_at logic + activity logging)
+    const stageChanged = stageId !== deal.stage_id;
+    if (stageChanged) {
+      const moveResult = await moveDealStage({
+        id: deal.id,
+        stage_id: stageId,
+        lost_reason: lostReason.trim() || null,
+      });
+      if (!moveResult.success) {
+        setSaving(false);
+        toast.error(moveResult.error || "Failed to move deal stage");
+        return;
+      }
+    }
+
+    // Include pipeline_id if pipeline changed
+    const pipelineChanged = pipelineId !== deal.pipeline_id;
+
+    const af = Number(auditFee) || 0;
+    const rm = Number(retainerMonthly) || 0;
+    const cdf = Number(customDevFee) || 0;
+
     const result = await updateDeal({
       id: deal.id,
       title: title.trim(),
-      value: Number(value) || 0,
+      value: af + rm + cdf,
+      audit_fee: af,
+      retainer_monthly: rm,
+      custom_dev_fee: cdf,
       description: description.trim() || null,
       priority: priority || null,
       source: source || null,
@@ -133,13 +226,45 @@ export function DealOverviewTab({ deal, editing, onDealUpdate }: Props) {
       competitor: competitor.trim() || null,
       deal_industry: dealIndustry || null,
       company_size: companySize || null,
+      revenue_start_date: revenueStartDate || null,
+      revenue_end_date: revenueEndDate || null,
+      contact_id: contactId === NONE_VALUE ? null : contactId,
+      company_id: companyId === NONE_VALUE ? null : companyId,
       win_reason: winReason.trim() || null,
       lost_reason: lostReason.trim() || null,
+      ...(pipelineChanged ? { pipeline_id: pipelineId } : {}),
     });
 
     setSaving(false);
     if (result.success && result.data) {
-      onDealUpdate({ ...deal, ...result.data });
+      // Update the pipeline_stages relation if stage changed
+      const updatedDeal = { ...deal, ...result.data };
+      if (stageChanged || pipelineChanged) {
+        const newStage = availableStages.find((s) => s.id === stageId);
+        if (newStage) {
+          updatedDeal.pipeline_stages = {
+            id: newStage.id,
+            name: newStage.name,
+            color: newStage.color,
+            is_won: newStage.is_won,
+            is_lost: newStage.is_lost,
+          };
+        }
+      }
+      // Update contact/company relations for sidebar display
+      const selectedContact = contactId !== NONE_VALUE ? contactsList.find((c) => c.id === contactId) : null;
+      const selectedCompany = companyId !== NONE_VALUE ? companiesList.find((c) => c.id === companyId) : null;
+      if (selectedContact) {
+        updatedDeal.contacts = selectedContact;
+      } else if (contactId === NONE_VALUE) {
+        updatedDeal.contacts = null;
+      }
+      if (selectedCompany) {
+        updatedDeal.companies = selectedCompany;
+      } else if (companyId === NONE_VALUE) {
+        updatedDeal.companies = null;
+      }
+      onDealUpdate(updatedDeal);
       toast.success("Deal updated");
       router.refresh();
     } else {
@@ -164,8 +289,12 @@ export function DealOverviewTab({ deal, editing, onDealUpdate }: Props) {
     }
   };
 
-  const isWon = deal.pipeline_stages?.is_won;
-  const isLost = deal.pipeline_stages?.is_lost;
+  // Use selected stage (when editing) or deal's current stage for won/lost checks
+  const selectedStage = editing
+    ? availableStages.find((s) => s.id === stageId)
+    : null;
+  const isWon = selectedStage ? selectedStage.is_won : deal.pipeline_stages?.is_won;
+  const isLost = selectedStage ? selectedStage.is_lost : deal.pipeline_stages?.is_lost;
 
   return (
     <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
@@ -176,10 +305,79 @@ export function DealOverviewTab({ deal, editing, onDealUpdate }: Props) {
           {editing ? (
             <div className="space-y-4">
               <Input label="Deal Title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Deal title" required />
-              <div className="grid grid-cols-2 gap-4">
-                <Input label="Value ($)" type="number" value={value} onChange={(e) => setValue(e.target.value)} placeholder="0" />
-                <Input label="Probability %" type="number" value={probability} onChange={(e) => setProbability(e.target.value)} placeholder="0-100" />
+              <div>
+                <label className="mb-1.5 block text-xs font-medium text-text-secondary">Revenue Breakdown</label>
+                <div className="grid grid-cols-3 gap-3">
+                  <Input label="Audit Fee ($)" type="number" value={auditFee} onChange={(e) => setAuditFee(e.target.value)} placeholder="0" />
+                  <Input label="Monthly Retainer ($)" type="number" value={retainerMonthly} onChange={(e) => setRetainerMonthly(e.target.value)} placeholder="0" />
+                  <Input label="Custom Dev Fee ($)" type="number" value={customDevFee} onChange={(e) => setCustomDevFee(e.target.value)} placeholder="0" />
+                </div>
+                <p className="mt-1 text-[11px] text-text-tertiary">Total: {formatCurrency((Number(auditFee) || 0) + (Number(retainerMonthly) || 0) + (Number(customDevFee) || 0), deal.currency)}</p>
               </div>
+              <div>
+                <label className="mb-1.5 block text-xs font-medium text-text-secondary">Revenue Tracking Period</label>
+                <div className="grid grid-cols-2 gap-3">
+                  <Input label="Start Date" type="date" value={revenueStartDate} onChange={(e) => setRevenueStartDate(e.target.value)} />
+                  <Input label="End Date (optional)" type="date" value={revenueEndDate} onChange={(e) => setRevenueEndDate(e.target.value)} />
+                </div>
+                <p className="mt-1 text-[11px] text-text-tertiary">Set a start date to enable monthly revenue tracking. Leave end date blank for ongoing relationships — revenue will track to the current month automatically.</p>
+              </div>
+              <Input label="Probability %" type="number" value={probability} onChange={(e) => setProbability(e.target.value)} placeholder="0-100" />
+              {/* Pipeline & Stage selectors */}
+              {allPipelines.length > 1 && (
+                <div className="space-y-1.5">
+                  <label className="block text-xs font-medium text-text-secondary">Pipeline</label>
+                  <Select
+                    value={pipelineId}
+                    onValueChange={(newPipelineId) => {
+                      setPipelineId(newPipelineId);
+                      // Auto-select first non-terminal stage in the new pipeline, or first stage
+                      const newPipeline = allPipelines.find((p) => p.id === newPipelineId);
+                      const sorted = [...(newPipeline?.pipeline_stages ?? [])].sort((a, b) => a.display_order - b.display_order);
+                      const firstOpen = sorted.find((s) => !s.is_won && !s.is_lost);
+                      setStageId(firstOpen?.id ?? sorted[0]?.id ?? "");
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select pipeline" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {allPipelines.map((p) => (
+                        <SelectItem key={p.id} value={p.id}>
+                          <span className="flex items-center gap-2">
+                            {p.name}
+                            {p.is_default && (
+                              <span className="text-[10px] text-text-tertiary">(Default)</span>
+                            )}
+                          </span>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+              {availableStages.length > 0 && (
+                <div className="space-y-1.5">
+                  <label className="block text-xs font-medium text-text-secondary">Stage</label>
+                  <Select value={stageId} onValueChange={setStageId}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select stage" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {availableStages.map((s) => (
+                          <SelectItem key={s.id} value={s.id}>
+                            <span className="flex items-center gap-2">
+                              <span className="inline-block h-2 w-2 rounded-full shrink-0" style={{ backgroundColor: s.color }} />
+                              {s.name}
+                              {s.is_won && " (Won)"}
+                              {s.is_lost && " (Lost)"}
+                            </span>
+                          </SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <label className="block text-xs font-medium text-text-secondary">Priority</label>
@@ -243,6 +441,45 @@ export function DealOverviewTab({ deal, editing, onDealUpdate }: Props) {
                 </div>
               </div>
               <Input label="Expected Close Date" type="date" value={expectedCloseDate} onChange={(e) => setExpectedCloseDate(e.target.value)} />
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label className="block text-xs font-medium text-text-secondary">Contact</label>
+                  <Select value={contactId} onValueChange={setContactId} disabled={loadingLists}>
+                    <SelectTrigger>
+                      <SelectValue placeholder={loadingLists ? "Loading..." : "Select contact"} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value={NONE_VALUE}>
+                        <span className="text-text-tertiary">No contact</span>
+                      </SelectItem>
+                      {contactsList.map((c) => (
+                        <SelectItem key={c.id} value={c.id}>
+                          {c.first_name} {c.last_name}
+                          {c.email && <span className="ml-1 text-text-tertiary">({c.email})</span>}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1.5">
+                  <label className="block text-xs font-medium text-text-secondary">Company</label>
+                  <Select value={companyId} onValueChange={setCompanyId} disabled={loadingLists}>
+                    <SelectTrigger>
+                      <SelectValue placeholder={loadingLists ? "Loading..." : "Select company"} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value={NONE_VALUE}>
+                        <span className="text-text-tertiary">No company</span>
+                      </SelectItem>
+                      {companiesList.map((c) => (
+                        <SelectItem key={c.id} value={c.id}>
+                          {c.company_name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
               <Input label="Next Step" value={nextStep} onChange={(e) => setNextStep(e.target.value)} placeholder="What's the next action?" />
               <Input label="Competitor" value={competitor} onChange={(e) => setCompetitor(e.target.value)} placeholder="Main competitor" />
               <div className="space-y-1.5">
@@ -281,6 +518,13 @@ export function DealOverviewTab({ deal, editing, onDealUpdate }: Props) {
                 <div>
                   <h1 className="text-2xl font-bold text-text-primary">{deal.title}</h1>
                   <p className="mt-1 font-mono text-3xl font-bold text-text-primary">{formatCurrency(deal.value, deal.currency)}</p>
+                  {(deal.audit_fee > 0 || deal.retainer_monthly > 0 || deal.custom_dev_fee > 0) && (
+                    <div className="mt-1.5 flex flex-wrap gap-3 text-xs text-text-secondary">
+                      {deal.audit_fee > 0 && <span>Audit: {formatCurrency(deal.audit_fee, deal.currency)}</span>}
+                      {deal.retainer_monthly > 0 && <span>Retainer/mo: {formatCurrency(deal.retainer_monthly, deal.currency)}</span>}
+                      {deal.custom_dev_fee > 0 && <span>Custom Dev: {formatCurrency(deal.custom_dev_fee, deal.currency)}</span>}
+                    </div>
+                  )}
                 </div>
                 <div className="flex items-center gap-2">
                   {deal.pipeline_stages && (
@@ -303,11 +547,16 @@ export function DealOverviewTab({ deal, editing, onDealUpdate }: Props) {
             <h3 className="mb-4 text-sm font-semibold text-text-primary">Deal Information</h3>
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
               {[
-                { icon: DollarSign, color: "text-accent-primary", label: "Value", val: formatCurrency(deal.value, deal.currency) },
+                { icon: DollarSign, color: "text-accent-primary", label: "Total Value", val: formatCurrency(deal.value, deal.currency) },
+                { icon: DollarSign, color: "text-signal-warning", label: "Audit Fee", val: formatCurrency(deal.audit_fee, deal.currency) },
+                { icon: Repeat, color: "text-signal-success", label: "Retainer/mo", val: formatCurrency(deal.retainer_monthly, deal.currency) },
+                { icon: DollarSign, color: "text-accent-cyan", label: "Custom Dev", val: formatCurrency(deal.custom_dev_fee, deal.currency) },
                 { icon: Percent, color: "text-accent-cyan", label: "Probability", val: `${deal.probability ?? 0}%` },
                 { icon: Target, color: "text-signal-warning", label: "Priority", val: deal.priority || "—" },
                 { icon: Tag, color: "text-signal-info", label: "Source", val: deal.source || "—" },
                 { icon: Calendar, color: "text-signal-success", label: "Expected Close", val: deal.expected_close_date ? new Date(deal.expected_close_date).toLocaleDateString() : "—" },
+                { icon: Calendar, color: "text-accent-primary", label: "Revenue Start", val: deal.revenue_start_date ? new Date(deal.revenue_start_date).toLocaleDateString() : "—" },
+                { icon: Calendar, color: "text-signal-danger", label: "Revenue End", val: deal.revenue_end_date ? new Date(deal.revenue_end_date).toLocaleDateString() : deal.revenue_start_date ? "Ongoing" : "—" },
                 { icon: Repeat, color: "text-accent-purple", label: "Payment Type", val: deal.payment_type ? DEAL_PAYMENT_TYPE_LABELS[deal.payment_type] : "—" },
                 ...(deal.payment_type === "retainer" ? [{ icon: Clock, color: "text-accent-cyan", label: "Frequency", val: deal.payment_frequency ? DEAL_PAYMENT_FREQUENCY_LABELS[deal.payment_frequency] : "—" }] : []),
                 { icon: Briefcase, color: "text-accent-primary", label: "Industry", val: deal.deal_industry ? DEAL_INDUSTRY_LABELS[deal.deal_industry] : "—" },

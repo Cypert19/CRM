@@ -1,13 +1,14 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { DollarSign, Trophy, XCircle, TrendingUp, Target, BarChart3 } from "lucide-react";
+import { DollarSign, Trophy, XCircle, TrendingUp, Target, BarChart3, FileSearch, Repeat, Code } from "lucide-react";
 import { ReportKPICard } from "./report-kpi-card";
 import { DealTrendChart } from "./deal-trend-chart";
 import { PipelineValueChart } from "./pipeline-value-chart";
 import { WinLossChart } from "./win-loss-chart";
 import { VelocityChart } from "./velocity-chart";
 import { PipelineStageChart } from "./pipeline-stage-chart";
+import { MonthlyRevenueChart } from "./monthly-revenue-chart";
 import { GlassCard } from "@/components/ui/glass-card";
 import type { ReportSummary } from "@/actions/reports";
 
@@ -67,8 +68,42 @@ export function ReportsDashboard({ data }: Props) {
         />
       </div>
 
+      {/* Revenue Breakdown Row */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <ReportKPICard
+          label="Audit Fees"
+          value={data.revenue_breakdown.audit_fee}
+          format="currency"
+          icon={<FileSearch className="h-5 w-5 text-signal-warning" />}
+          glow="warning"
+          subtitle={`Won: $${Math.round(data.won_revenue_breakdown.audit_fee).toLocaleString()}`}
+          delay={0.4}
+        />
+        <ReportKPICard
+          label="Monthly Retainers"
+          value={data.revenue_breakdown.retainer_monthly}
+          format="currency"
+          icon={<Repeat className="h-5 w-5 text-signal-success" />}
+          glow="success"
+          subtitle={`Won: $${Math.round(data.won_revenue_breakdown.retainer_monthly).toLocaleString()}`}
+          delay={0.48}
+        />
+        <ReportKPICard
+          label="Custom Development"
+          value={data.revenue_breakdown.custom_dev_fee}
+          format="currency"
+          icon={<Code className="h-5 w-5 text-accent-cyan" />}
+          glow="cyan"
+          subtitle={`Won: $${Math.round(data.won_revenue_breakdown.custom_dev_fee).toLocaleString()}`}
+          delay={0.56}
+        />
+      </div>
+
       {hasDeals ? (
         <>
+          {/* Monthly Revenue Chart */}
+          <MonthlyRevenueChart data={data.monthly_revenue} />
+
           {/* Charts Row 1 - Deal Flow & Pipeline Value */}
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
             <DealTrendChart data={data.deal_trends} />

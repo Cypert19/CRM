@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -47,14 +48,27 @@ export function Sidebar() {
       )}
     >
       {/* Logo */}
-      <div className="flex h-16 items-center gap-3 border-b border-border-glass px-5">
-        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-accent-primary to-accent-cyan">
-          <span className="text-xs font-bold text-white">N</span>
-        </div>
-        {!sidebarCollapsed && (
-          <span className="gradient-text text-lg font-bold tracking-tight">
-            NexusCRM
-          </span>
+      <div className="flex h-16 items-center border-b border-border-glass px-4">
+        {sidebarCollapsed ? (
+          <Image
+            src="/avolis-icon.png"
+            alt="Avolis"
+            width={40}
+            height={40}
+            className="h-9 w-9 shrink-0 object-contain"
+            style={{ mixBlendMode: "screen" }}
+            priority
+          />
+        ) : (
+          <Image
+            src="/avolis-wordmark.png"
+            alt="Avolis"
+            width={480}
+            height={270}
+            className="h-16 w-auto object-contain"
+            style={{ mixBlendMode: "screen" }}
+            priority
+          />
         )}
       </div>
 
@@ -67,7 +81,7 @@ export function Sidebar() {
               key={item.href}
               href={item.href}
               className={cn(
-                "focus-ring group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-150",
+                "focus-ring group relative flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition-all duration-150",
                 isActive
                   ? "text-text-primary"
                   : "text-text-secondary hover:text-text-primary"
@@ -79,12 +93,21 @@ export function Sidebar() {
               {isActive && (
                 <div className="absolute left-0 top-1/2 h-6 w-1 -translate-y-1/2 rounded-r-full bg-gradient-to-b from-accent-primary to-accent-glow" />
               )}
-              <item.icon
+              <div
                 className={cn(
-                  "relative z-10 h-5 w-5 shrink-0",
-                  isActive && "text-accent-primary"
+                  "nav-icon-glass relative z-10",
+                  isActive && "nav-icon-glass-active"
                 )}
-              />
+              >
+                <item.icon
+                  className={cn(
+                    "h-[18px] w-[18px]",
+                    isActive
+                      ? "text-accent-primary drop-shadow-[0_0_6px_rgba(249,115,22,0.4)]"
+                      : "text-text-tertiary group-hover:text-text-secondary"
+                  )}
+                />
+              </div>
               {!sidebarCollapsed && (
                 <span className="relative z-10">{item.label}</span>
               )}
@@ -102,17 +125,37 @@ export function Sidebar() {
               key={item.href}
               href={item.href}
               className={cn(
-                "focus-ring group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-150",
+                "focus-ring group relative flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition-all duration-150",
                 isActive
                   ? "text-text-primary"
                   : "text-text-secondary hover:text-text-primary",
-                item.isAI && "text-accent-cyan hover:text-accent-cyan-glow"
+                item.isAI && !isActive && "text-accent-primary"
               )}
             >
               {isActive && (
                 <div className="nav-active-glow absolute inset-0 rounded-xl" />
               )}
-              <item.icon className={cn("relative z-10 h-5 w-5 shrink-0", isActive && !item.isAI && "text-accent-primary")} />
+              {isActive && (
+                <div className="absolute left-0 top-1/2 h-6 w-1 -translate-y-1/2 rounded-r-full bg-gradient-to-b from-accent-primary to-accent-glow" />
+              )}
+              <div
+                className={cn(
+                  "nav-icon-glass relative z-10",
+                  isActive && "nav-icon-glass-active",
+                  item.isAI && !isActive && "nav-icon-glass-ai"
+                )}
+              >
+                <item.icon
+                  className={cn(
+                    "h-[18px] w-[18px]",
+                    isActive
+                      ? "text-accent-primary drop-shadow-[0_0_6px_rgba(249,115,22,0.4)]"
+                      : item.isAI
+                        ? "text-accent-primary drop-shadow-[0_0_4px_rgba(249,115,22,0.3)]"
+                        : "text-text-tertiary group-hover:text-text-secondary"
+                  )}
+                />
+              </div>
               {!sidebarCollapsed && (
                 <span className="relative z-10">{item.label}</span>
               )}
@@ -123,17 +166,17 @@ export function Sidebar() {
         {/* Collapse Toggle */}
         <button
           onClick={toggleSidebar}
-          className="focus-ring flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-text-tertiary transition-colors hover:text-text-secondary"
+          className="focus-ring group flex w-full items-center gap-3 rounded-xl px-3 py-2 text-sm text-text-tertiary transition-colors hover:text-text-secondary"
           aria-label={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
         >
-          {sidebarCollapsed ? (
-            <ChevronsRight className="h-5 w-5 shrink-0" />
-          ) : (
-            <>
-              <ChevronsLeft className="h-5 w-5 shrink-0" />
-              <span>Collapse</span>
-            </>
-          )}
+          <div className="nav-icon-glass">
+            {sidebarCollapsed ? (
+              <ChevronsRight className="h-[18px] w-[18px] text-text-tertiary group-hover:text-text-secondary" />
+            ) : (
+              <ChevronsLeft className="h-[18px] w-[18px] text-text-tertiary group-hover:text-text-secondary" />
+            )}
+          </div>
+          {!sidebarCollapsed && <span>Collapse</span>}
         </button>
       </div>
     </aside>

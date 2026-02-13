@@ -10,10 +10,10 @@ export const createTaskSchema = z.object({
   deal_id: z.string().uuid().nullable().optional(),
   contact_id: z.string().uuid().nullable().optional(),
   task_type: z
-    .enum(["Call", "Email", "Meeting", "Follow-Up", "Demo", "Proposal", "Other"])
+    .enum(["Call", "Email", "Meeting", "Follow-Up", "Demo", "Proposal", "Automations", "Website Development", "Custom Development", "Training", "Consulting", "Other"])
     .default("Other"),
   reminder_at: z.string().nullable().optional(),
-  notes: z.string().max(5000).nullable().optional(),
+  notes: z.string().max(10000).nullable().optional(),
   // PRD fields
   start_date: z.string().nullable().optional(),
   end_date: z.string().nullable().optional(),

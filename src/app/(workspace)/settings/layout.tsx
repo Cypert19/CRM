@@ -2,13 +2,15 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Settings, GitBranch, Users } from "lucide-react";
+import { Settings, GitBranch, Users, Upload, UserCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const settingsTabs = [
+  { label: "Profile", href: "/settings/profile", icon: UserCircle },
   { label: "General", href: "/settings/general", icon: Settings },
   { label: "Pipelines", href: "/settings/pipelines", icon: GitBranch },
   { label: "Members", href: "/settings/members", icon: Users },
+  { label: "Import Data", href: "/settings/import", icon: Upload },
 ];
 
 export default function SettingsLayout({ children }: { children: React.ReactNode }) {

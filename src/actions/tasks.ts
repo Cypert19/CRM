@@ -1,28 +1,66 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createTaskSchema, updateTaskSchema } from "@/validators/tasks";
 import { getWorkspaceContext } from "@/lib/workspace";
 import type { ActionResponse } from "@/types/common";
 import type { Tables } from "@/types/database";
 
-export async function getTasks(filters?: { assignee_id?: string; deal_id?: string; status?: string }): Promise<ActionResponse<Tables<"tasks">[]>> {
+export type TaskWithRelations = Tables<"tasks"> & {
+  users?: { id: string; full_name: string; avatar_url: string | null } | null;
+  creator?: { id: string; full_name: string; avatar_url: string | null } | null;
+  deals?: { id: string; title: string; value: number } | null;
+  contacts?: { id: string; first_name: string; last_name: string; email: string | null } | null;
+};
+
+export async function getTask(id: string): Promise<ActionResponse<TaskWithRelations>> {
   try {
-    const supabase = await createClient();
-    let query = supabase
+    const admin = createAdminClient();
+    const { data, error } = await admin
       .from("tasks")
-      .select("*, users!tasks_assignee_id_fkey(id, full_name, avatar_url)")
+      .select(`
+        *,
+        users!tasks_assignee_id_fkey(id, full_name, avatar_url),
+        creator:users!tasks_creator_id_fkey(id, full_name, avatar_url),
+        deals!tasks_deal_id_fkey(id, title, value),
+        contacts!tasks_contact_id_fkey(id, first_name, last_name, email)
+      `)
+      .eq("id", id)
+      .single();
+
+    if (error) return { success: false, error: error.message };
+    return { success: true, data: data as unknown as TaskWithRelations };
+  } catch {
+    return { success: false, error: "Failed to fetch task" };
+  }
+}
+
+export async function getTasks(filters?: { assignee_id?: string; deal_id?: string; status?: string }): Promise<ActionResponse<TaskWithRelations[]>> {
+  try {
+    const admin = createAdminClient();
+    const ctx = await getWorkspaceContext();
+    if (!ctx) return { success: false, error: "No workspace found" };
+
+    let query = admin
+      .from("tasks")
+      .select(`
+        *,
+        users!tasks_assignee_id_fkey(id, full_name, avatar_url),
+        deals!tasks_deal_id_fkey(id, title),
+        contacts!tasks_contact_id_fkey(id, first_name, last_name)
+      `)
+      .eq("workspace_id", ctx.workspaceId)
       .order("due_date", { ascending: true, nullsFirst: false })
       .order("created_at", { ascending: false });
 
     if (filters?.assignee_id) query = query.eq("assignee_id", filters.assignee_id);
     if (filters?.deal_id) query = query.eq("deal_id", filters.deal_id);
-    if (filters?.status) query = query.eq("status", filters.status);
+    if (filters?.status) query = query.eq("status", filters.status as Tables<"tasks">["status"]);
 
     const { data, error } = await query;
     if (error) return { success: false, error: error.message };
-    return { success: true, data: data as unknown as Tables<"tasks">[] };
+    return { success: true, data: data as unknown as TaskWithRelations[] };
   } catch {
     return { success: false, error: "Failed to fetch tasks" };
   }
@@ -36,10 +74,10 @@ export async function createTask(input: unknown): Promise<ActionResponse<Tables<
     const ctx = await getWorkspaceContext();
     if (!ctx) return { success: false, error: "No workspace found. Please log out and log back in." };
 
-    const supabase = await createClient();
+    const admin = createAdminClient();
 
-    const { data, error } = await supabase
-      .from("tasks")
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data, error } = await (admin.from("tasks") as any)
       .insert({
         ...parsed.data,
         workspace_id: ctx.workspaceId,
@@ -51,7 +89,8 @@ export async function createTask(input: unknown): Promise<ActionResponse<Tables<
 
     if (error) return { success: false, error: error.message };
 
-    await supabase.from("activities").insert({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (admin.from("activities") as any).insert({
       workspace_id: ctx.workspaceId,
       activity_type: "task_created",
       actor_id: ctx.userId,
@@ -74,26 +113,27 @@ export async function updateTask(input: unknown): Promise<ActionResponse<Tables<
     if (!parsed.success) return { success: false, error: parsed.error.errors[0]?.message ?? "Invalid input" };
 
     const { id, ...updates } = parsed.data;
-    const supabase = await createClient();
+    const admin = createAdminClient();
 
-    const { data, error } = await supabase.from("tasks").update(updates).eq("id", id).select().single();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data, error } = await (admin.from("tasks") as any).update(updates).eq("id", id).select().single();
     if (error) return { success: false, error: error.message };
 
-    if (updates.status === "Done") {
-      const ctx = await getWorkspaceContext();
-      if (ctx) {
-        await supabase.from("activities").insert({
-          workspace_id: ctx.workspaceId,
-          activity_type: "task_completed",
-          actor_id: ctx.userId,
-          entity_type: "Task",
-          entity_id: data.id,
-          metadata: { title: data.title },
-        });
-      }
+    const ctx = await getWorkspaceContext();
+    if (ctx) {
+      const activityType = updates.status === "Done" ? "task_completed" : "task_updated";
+      await admin.from("activities").insert({
+        workspace_id: ctx.workspaceId,
+        activity_type: activityType,
+        actor_id: ctx.userId,
+        entity_type: "Task",
+        entity_id: data.id,
+        metadata: { title: data.title } as unknown as Record<string, unknown>,
+      } as never);
     }
 
     revalidatePath("/tasks");
+    revalidatePath(`/tasks/${id}`);
     if (data.deal_id) revalidatePath(`/deals/${data.deal_id}`);
     return { success: true, data };
   } catch {
@@ -103,8 +143,8 @@ export async function updateTask(input: unknown): Promise<ActionResponse<Tables<
 
 export async function deleteTask(id: string): Promise<ActionResponse> {
   try {
-    const supabase = await createClient();
-    const { error } = await supabase.from("tasks").delete().eq("id", id);
+    const admin = createAdminClient();
+    const { error } = await admin.from("tasks").delete().eq("id", id);
     if (error) return { success: false, error: error.message };
     revalidatePath("/tasks");
     return { success: true };

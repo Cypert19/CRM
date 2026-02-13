@@ -21,7 +21,7 @@ type Props = {
   data: WinLossData;
 };
 
-const DONUT_COLORS = ["#10B981", "#F43F5E", "#7C3AED"];
+const DONUT_COLORS = ["#10B981", "#F43F5E", "#F97316"];
 
 function DonutTooltip({ active, payload }: { active?: boolean; payload?: Array<{ value: number; name: string; payload: { fill: string } }> }) {
   if (!active || !payload?.length) return null;
@@ -169,7 +169,7 @@ export function WinLossChart({ data }: Props) {
                   />
                   <XAxis
                     type="number"
-                    tick={{ fill: "#6B6B80", fontSize: 11 }}
+                    tick={{ fill: "#737373", fontSize: 11 }}
                     axisLine={false}
                     tickLine={false}
                     allowDecimals={false}
@@ -177,7 +177,7 @@ export function WinLossChart({ data }: Props) {
                   <YAxis
                     type="category"
                     dataKey="source"
-                    tick={{ fill: "#A0A0B8", fontSize: 11 }}
+                    tick={{ fill: "#A0A0A0", fontSize: 11 }}
                     axisLine={false}
                     tickLine={false}
                     width={80}

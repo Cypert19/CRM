@@ -50,9 +50,15 @@ export function DealForm({
     setLoading(true);
 
     const formData = new FormData(e.currentTarget);
+    const auditFee = Number(formData.get("audit_fee")) || 0;
+    const retainerMonthly = Number(formData.get("retainer_monthly")) || 0;
+    const customDevFee = Number(formData.get("custom_dev_fee")) || 0;
     const result = await createDeal({
       title: formData.get("title") as string,
-      value: Number(formData.get("value")) || 0,
+      value: auditFee + retainerMonthly + customDevFee,
+      audit_fee: auditFee,
+      retainer_monthly: retainerMonthly,
+      custom_dev_fee: customDevFee,
       stage_id: stageId,
       pipeline_id: pipelineId,
       priority: priority || undefined,
@@ -96,14 +102,35 @@ export function DealForm({
             autoFocus
           />
 
-          <Input
-            name="value"
-            label="Value"
-            type="number"
-            min={0}
-            step={0.01}
-            placeholder="0"
-          />
+          <div className="space-y-1.5">
+            <label className="block text-xs font-medium text-text-secondary">Revenue Breakdown</label>
+            <div className="grid grid-cols-3 gap-3">
+              <Input
+                name="audit_fee"
+                label="Audit Fee"
+                type="number"
+                min={0}
+                step={0.01}
+                placeholder="0"
+              />
+              <Input
+                name="retainer_monthly"
+                label="Monthly Retainer"
+                type="number"
+                min={0}
+                step={0.01}
+                placeholder="0"
+              />
+              <Input
+                name="custom_dev_fee"
+                label="Custom Dev Fee"
+                type="number"
+                min={0}
+                step={0.01}
+                placeholder="0"
+              />
+            </div>
+          </div>
 
           <div className="space-y-1.5">
             <label className="block text-xs text-text-secondary">Stage</label>

@@ -47,9 +47,9 @@ export function PipelineValueChart({ data }: Props) {
             <AreaChart data={data} margin={{ top: 5, right: 10, left: -10, bottom: 0 }}>
               <defs>
                 <linearGradient id="gradPipelineValue" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#06B6D4" stopOpacity={0.5} />
-                  <stop offset="50%" stopColor="#06B6D4" stopOpacity={0.15} />
-                  <stop offset="100%" stopColor="#06B6D4" stopOpacity={0} />
+                  <stop offset="0%" stopColor="#F97316" stopOpacity={0.5} />
+                  <stop offset="50%" stopColor="#F97316" stopOpacity={0.15} />
+                  <stop offset="100%" stopColor="#F97316" stopOpacity={0} />
                 </linearGradient>
                 <filter id="glowCyan">
                   <feGaussianBlur stdDeviation="3" result="coloredBlur" />
@@ -66,12 +66,12 @@ export function PipelineValueChart({ data }: Props) {
               />
               <XAxis
                 dataKey="date"
-                tick={{ fill: "#6B6B80", fontSize: 11 }}
+                tick={{ fill: "#737373", fontSize: 11 }}
                 axisLine={{ stroke: "rgba(255,255,255,0.08)" }}
                 tickLine={false}
               />
               <YAxis
-                tick={{ fill: "#6B6B80", fontSize: 11 }}
+                tick={{ fill: "#737373", fontSize: 11 }}
                 axisLine={false}
                 tickLine={false}
                 tickFormatter={(v) => (v >= 1000 ? `$${v / 1000}k` : `$${v}`)}
@@ -80,7 +80,7 @@ export function PipelineValueChart({ data }: Props) {
               <Area
                 type="monotone"
                 dataKey="pipeline_value"
-                stroke="#06B6D4"
+                stroke="#F97316"
                 strokeWidth={3}
                 fill="url(#gradPipelineValue)"
                 filter="url(#glowCyan)"
@@ -89,8 +89,8 @@ export function PipelineValueChart({ data }: Props) {
                 dot={false}
                 activeDot={{
                   r: 6,
-                  fill: "#06B6D4",
-                  stroke: "#1A1A2E",
+                  fill: "#F97316",
+                  stroke: "#1C1C1C",
                   strokeWidth: 3,
                 }}
               />

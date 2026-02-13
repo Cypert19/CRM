@@ -73,8 +73,8 @@ export function VelocityChart({ data }: Props) {
             >
               <defs>
                 <linearGradient id="gradVelocityBar" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#7C3AED" stopOpacity={0.8} />
-                  <stop offset="100%" stopColor="#7C3AED" stopOpacity={0.3} />
+                  <stop offset="0%" stopColor="#F97316" stopOpacity={0.8} />
+                  <stop offset="100%" stopColor="#F97316" stopOpacity={0.3} />
                 </linearGradient>
               </defs>
               <CartesianGrid
@@ -84,13 +84,13 @@ export function VelocityChart({ data }: Props) {
               />
               <XAxis
                 dataKey="month"
-                tick={{ fill: "#6B6B80", fontSize: 11 }}
+                tick={{ fill: "#737373", fontSize: 11 }}
                 axisLine={{ stroke: "rgba(255,255,255,0.08)" }}
                 tickLine={false}
               />
               <YAxis
                 yAxisId="left"
-                tick={{ fill: "#6B6B80", fontSize: 11 }}
+                tick={{ fill: "#737373", fontSize: 11 }}
                 axisLine={false}
                 tickLine={false}
                 allowDecimals={false}
@@ -98,7 +98,7 @@ export function VelocityChart({ data }: Props) {
               <YAxis
                 yAxisId="right"
                 orientation="right"
-                tick={{ fill: "#6B6B80", fontSize: 11 }}
+                tick={{ fill: "#737373", fontSize: 11 }}
                 axisLine={false}
                 tickLine={false}
                 allowDecimals={false}
@@ -106,7 +106,7 @@ export function VelocityChart({ data }: Props) {
               />
               <Tooltip content={<CustomTooltip />} />
               <Legend
-                wrapperStyle={{ fontSize: 11, color: "#A0A0B8" }}
+                wrapperStyle={{ fontSize: 11, color: "#A0A0A0" }}
                 iconType="circle"
                 iconSize={8}
               />
@@ -130,13 +130,13 @@ export function VelocityChart({ data }: Props) {
                 dot={{
                   r: 4,
                   fill: "#F59E0B",
-                  stroke: "#1A1A2E",
+                  stroke: "#1C1C1C",
                   strokeWidth: 2,
                 }}
                 activeDot={{
                   r: 6,
                   fill: "#F59E0B",
-                  stroke: "#1A1A2E",
+                  stroke: "#1C1C1C",
                   strokeWidth: 3,
                 }}
                 animationDuration={2000}

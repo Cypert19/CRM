@@ -6,6 +6,8 @@ import { getWorkspaceContext } from "@/lib/workspace";
 import type { ActionResponse } from "@/types/common";
 import type { Tables } from "@/types/database";
 
+// ─── Existing File Actions ──────────────────────────────────────────────────
+
 export async function getFiles(entityType?: string, entityId?: string): Promise<ActionResponse<Tables<"files">[]>> {
   try {
     const supabase = await createClient();
@@ -79,8 +81,111 @@ export async function deleteFile(id: string, storagePath: string): Promise<Actio
     if (error) return { success: false, error: error.message };
 
     revalidatePath("/files");
+    revalidatePath("/deals");
     return { success: true };
   } catch {
     return { success: false, error: "Failed to delete file" };
+  }
+}
+
+// ─── Knowledge Base Actions ─────────────────────────────────────────────────
+
+export type KBFileRecord = Omit<Tables<"files">, "extracted_text"> & {
+  has_extracted_text: boolean;
+  uploader?: { id: string; full_name: string } | null;
+};
+
+/**
+ * Get knowledge base files for a deal, optionally filtered by category.
+ * Strips extracted_text from response (only sends has_extracted_text boolean).
+ */
+export async function getKBFiles(
+  dealId: string,
+  category?: string | null
+): Promise<ActionResponse<KBFileRecord[]>> {
+  try {
+    const supabase = await createClient();
+    let query = supabase
+      .from("files")
+      .select("*, users!files_uploaded_by_fkey(id, full_name)")
+      .eq("deal_id", dealId)
+      .order("created_at", { ascending: false });
+
+    if (category) {
+      query = query.eq("category", category);
+    }
+
+    const { data, error } = await query;
+    if (error) return { success: false, error: error.message };
+
+    const mapped: KBFileRecord[] = (data || []).map((f: Record<string, unknown>) => {
+      const { extracted_text, users, ...rest } = f as Tables<"files"> & { users?: { id: string; full_name: string } | null };
+      return {
+        ...rest,
+        has_extracted_text: !!extracted_text,
+        uploader: users || null,
+      };
+    });
+
+    return { success: true, data: mapped };
+  } catch {
+    return { success: false, error: "Failed to fetch knowledge base files" };
+  }
+}
+
+/**
+ * Get distinct categories used across a deal's KB files.
+ */
+export async function getKBCategories(
+  dealId: string
+): Promise<ActionResponse<string[]>> {
+  try {
+    const supabase = await createClient();
+    const { data, error } = await supabase
+      .from("files")
+      .select("category")
+      .eq("deal_id", dealId)
+      .not("category", "is", null);
+
+    if (error) return { success: false, error: error.message };
+
+    const categories = [
+      ...new Set(
+        (data || [])
+          .map((r: { category: string | null }) => r.category)
+          .filter(Boolean) as string[]
+      ),
+    ];
+
+    return { success: true, data: categories };
+  } catch {
+    return { success: false, error: "Failed to fetch categories" };
+  }
+}
+
+/**
+ * Update file metadata (category or description).
+ */
+export async function updateFileMetadata(
+  id: string,
+  updates: { category?: string | null; description?: string | null }
+): Promise<ActionResponse<Tables<"files">>> {
+  try {
+    const supabase = await createClient();
+    const { data, error } = await (supabase
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .from("files") as any)
+      .update(updates)
+      .eq("id", id)
+      .select()
+      .single();
+
+    if (error) return { success: false, error: error.message };
+
+    revalidatePath("/files");
+    revalidatePath("/deals");
+    return { success: true, data };
+  } catch {
+    return { success: false, error: "Failed to update file metadata" };
   }
 }

@@ -5,12 +5,14 @@ import { X, Sparkles, Trash2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useUIStore } from "@/stores/ui-store";
 import { useAIStore, type AIMessage } from "@/stores/ai-store";
+import { useFocusStore } from "@/stores/focus-store";
 import { AIMessageBubble } from "./ai-message";
 import { AIInput } from "./ai-input";
 import { ThinkingGradient } from "./thinking-gradient";
 
 export function AIPanel() {
   const { aiPanelOpen, setAIPanelOpen } = useUIStore();
+  const focusModeActive = useFocusStore((s) => s.isActive);
   const {
     messages,
     isLoading,
@@ -111,6 +113,9 @@ export function AIPanel() {
     }
   };
 
+  // Suppress when focus mode is active (focus mode has its own AI chat)
+  if (focusModeActive) return null;
+
   return (
     <AnimatePresence>
       {aiPanelOpen && (
@@ -121,7 +126,7 @@ export function AIPanel() {
           transition={{ type: "spring", damping: 25, stiffness: 200 }}
           className="fixed bottom-0 right-0 top-0 z-50 flex w-[420px] flex-col border-l border-accent-cyan/20 bg-bg-surface/95 backdrop-blur-xl"
           style={{
-            boxShadow: "-4px 0 20px rgba(6, 182, 212, 0.1)",
+            boxShadow: "-4px 0 20px rgba(249, 115, 22, 0.1)",
           }}
         >
           {/* Header */}

@@ -54,8 +54,8 @@ export function DealTrendChart({ data }: Props) {
             <AreaChart data={data} margin={{ top: 5, right: 10, left: -10, bottom: 0 }}>
               <defs>
                 <linearGradient id="gradCreated" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#7C3AED" stopOpacity={0.4} />
-                  <stop offset="95%" stopColor="#7C3AED" stopOpacity={0} />
+                  <stop offset="0%" stopColor="#F97316" stopOpacity={0.4} />
+                  <stop offset="95%" stopColor="#F97316" stopOpacity={0} />
                 </linearGradient>
                 <linearGradient id="gradWon" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="0%" stopColor="#10B981" stopOpacity={0.4} />
@@ -73,19 +73,19 @@ export function DealTrendChart({ data }: Props) {
               />
               <XAxis
                 dataKey="date"
-                tick={{ fill: "#6B6B80", fontSize: 11 }}
+                tick={{ fill: "#737373", fontSize: 11 }}
                 axisLine={{ stroke: "rgba(255,255,255,0.08)" }}
                 tickLine={false}
               />
               <YAxis
-                tick={{ fill: "#6B6B80", fontSize: 11 }}
+                tick={{ fill: "#737373", fontSize: 11 }}
                 axisLine={false}
                 tickLine={false}
                 allowDecimals={false}
               />
               <Tooltip content={<CustomTooltip />} />
               <Legend
-                wrapperStyle={{ fontSize: 11, color: "#A0A0B8" }}
+                wrapperStyle={{ fontSize: 11, color: "#A0A0A0" }}
                 iconType="circle"
                 iconSize={8}
               />
@@ -93,7 +93,7 @@ export function DealTrendChart({ data }: Props) {
                 type="monotone"
                 dataKey="created"
                 name="Created"
-                stroke="#7C3AED"
+                stroke="#F97316"
                 strokeWidth={2.5}
                 fill="url(#gradCreated)"
                 animationDuration={1500}
@@ -101,8 +101,8 @@ export function DealTrendChart({ data }: Props) {
                 dot={false}
                 activeDot={{
                   r: 5,
-                  fill: "#7C3AED",
-                  stroke: "#1A1A2E",
+                  fill: "#F97316",
+                  stroke: "#1C1C1C",
                   strokeWidth: 2,
                 }}
               />
@@ -119,7 +119,7 @@ export function DealTrendChart({ data }: Props) {
                 activeDot={{
                   r: 5,
                   fill: "#10B981",
-                  stroke: "#1A1A2E",
+                  stroke: "#1C1C1C",
                   strokeWidth: 2,
                 }}
               />
@@ -136,7 +136,7 @@ export function DealTrendChart({ data }: Props) {
                 activeDot={{
                   r: 5,
                   fill: "#F43F5E",
-                  stroke: "#1A1A2E",
+                  stroke: "#1C1C1C",
                   strokeWidth: 2,
                 }}
               />

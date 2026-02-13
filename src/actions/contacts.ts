@@ -56,17 +56,18 @@ export async function createContact(input: unknown): Promise<ActionResponse<Tabl
     const ctx = await getWorkspaceContext();
     if (!ctx) return { success: false, error: "No workspace found. Please log out and log back in." };
 
-    const supabase = await createClient();
+    const admin = createAdminClient();
 
-    const { data, error } = await supabase
-      .from("contacts")
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data, error } = await (admin.from("contacts") as any)
       .insert({ ...parsed.data, workspace_id: ctx.workspaceId, owner_id: ctx.userId })
       .select()
       .single();
 
     if (error) return { success: false, error: error.message };
 
-    await supabase.from("activities").insert({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (admin.from("activities") as any).insert({
       workspace_id: ctx.workspaceId,
       activity_type: "contact_created",
       actor_id: ctx.userId,
@@ -113,9 +114,9 @@ export async function updateContact(input: unknown): Promise<ActionResponse<Tabl
 
 export async function deleteContact(id: string): Promise<ActionResponse> {
   try {
-    const supabase = await createClient();
-    const { error } = await supabase
-      .from("contacts")
+    const admin = createAdminClient();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { error } = await (admin.from("contacts") as any)
       .update({ deleted_at: new Date().toISOString() })
       .eq("id", id);
 
