@@ -1,4 +1,3 @@
-import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getAnthropicClient } from "@/lib/ai/client";
 import { buildImportSystemPrompt, buildImportUserPrompt } from "@/lib/ai/import-prompt";
@@ -176,97 +175,84 @@ function coerceParseResult(parsed: any): Record<string, unknown> | null {
   return target;
 }
 
-// ─── Call Claude with logging and diagnostics ─────────────────────────────────
+// ─── Stream Claude and collect full text ──────────────────────────────────────
 
-type ClaudeCallResult = {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  data: Record<string, any> | null;
-  error: string | null;
-  rawResponsePreview: string | null;
-  stopReason: string | null;
-};
-
-async function callClaude(
+async function streamClaude(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   anthropic: any,
   systemPrompt: string,
-  userPrompt: string
-): Promise<ClaudeCallResult> {
-  try {
-    const response = await anthropic.messages.create({
-      model: "claude-sonnet-4-5-20250929",
-      max_tokens: 16384,
-      system: systemPrompt,
-      messages: [{ role: "user", content: userPrompt }],
-    });
+  userPrompt: string,
+  onChunk?: () => void
+): Promise<{ text: string; stopReason: string | null }> {
+  let fullText = "";
+  let stopReason: string | null = null;
 
-    const stopReason = response.stop_reason || null;
+  const stream = await anthropic.messages.stream({
+    model: "claude-sonnet-4-5-20250929",
+    max_tokens: 16384,
+    system: systemPrompt,
+    messages: [{ role: "user", content: userPrompt }],
+  });
 
-    if (stopReason === "max_tokens") {
-      console.warn("[import] AI response was truncated (hit max_tokens)");
+  for await (const event of stream) {
+    if (event.type === "content_block_delta" && event.delta.type === "text_delta") {
+      fullText += event.delta.text;
+      onChunk?.();
     }
-
-    // Extract text content
-    const textBlock = response.content.find(
-      (block: { type: string }) => block.type === "text"
-    );
-    if (!textBlock) {
-      console.error("[import] No text block in AI response");
-      return { data: null, error: "No text in AI response", rawResponsePreview: null, stopReason };
+    if (event.type === "message_delta" && event.delta.stop_reason) {
+      stopReason = event.delta.stop_reason;
     }
-
-    const text = (textBlock as { type: "text"; text: string }).text.trim();
-    const rawResponsePreview = text.substring(0, 500);
-
-    console.log("[import] AI response preview:", rawResponsePreview);
-    console.log("[import] AI response length:", text.length, "chars, stop_reason:", stopReason);
-
-    // Extract JSON robustly
-    let jsonStr = extractJSON(text);
-
-    // If response was truncated, attempt bracket-closing repair
-    if (stopReason === "max_tokens") {
-      console.warn("[import] Attempting JSON repair for truncated response");
-      jsonStr = attemptJSONRepair(jsonStr);
-    }
-
-    // Parse JSON
-    let parsed: unknown;
-    try {
-      parsed = JSON.parse(jsonStr);
-    } catch (parseError) {
-      const errMsg = parseError instanceof Error ? parseError.message : String(parseError);
-      console.error("[import] JSON parse failed:", errMsg);
-      console.error("[import] JSON input preview:", jsonStr.substring(0, 300));
-      return {
-        data: null,
-        error: `JSON parse failed: ${errMsg}`,
-        rawResponsePreview,
-        stopReason,
-      };
-    }
-
-    // Coerce and validate
-    const coerced = coerceParseResult(parsed);
-    if (!coerced) {
-      console.warn("[import] Coerced result was null/empty. Keys found:", Object.keys(parsed as object));
-      return {
-        data: null,
-        error: "AI response did not contain recognizable entity data",
-        rawResponsePreview,
-        stopReason,
-      };
-    }
-
-    return { data: coerced, error: null, rawResponsePreview, stopReason };
-  } catch (error) {
-    const errMsg = error instanceof Error ? error.message : String(error);
-    console.error("[import] callClaude error:", errMsg);
-    if (error instanceof Error && error.stack) {
-      console.error("[import] Stack:", error.stack);
-    }
-    return { data: null, error: errMsg, rawResponsePreview: null, stopReason: null };
   }
+
+  return { text: fullText, stopReason };
+}
+
+// ─── Process Claude text into parsed result ──────────────────────────────────
+
+type ParseAttemptResult = {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  data: Record<string, any> | null;
+  error: string | null;
+  stopReason: string | null;
+};
+
+function processClaudeText(text: string, stopReason: string | null): ParseAttemptResult {
+  if (stopReason === "max_tokens") {
+    console.warn("[import] AI response was truncated (hit max_tokens)");
+  }
+
+  const rawResponsePreview = text.substring(0, 500);
+  console.log("[import] AI response preview:", rawResponsePreview);
+  console.log("[import] AI response length:", text.length, "chars, stop_reason:", stopReason);
+
+  // Extract JSON robustly
+  let jsonStr = extractJSON(text);
+
+  // If response was truncated, attempt bracket-closing repair
+  if (stopReason === "max_tokens") {
+    console.warn("[import] Attempting JSON repair for truncated response");
+    jsonStr = attemptJSONRepair(jsonStr);
+  }
+
+  // Parse JSON
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(jsonStr);
+  } catch (parseError) {
+    const errMsg = parseError instanceof Error ? parseError.message : String(parseError);
+    console.error("[import] JSON parse failed:", errMsg);
+    console.error("[import] JSON input preview:", jsonStr.substring(0, 300));
+    return { data: null, error: `JSON parse failed: ${errMsg}`, stopReason };
+  }
+
+  // Coerce and validate
+  const coerced = coerceParseResult(parsed);
+  if (!coerced) {
+    console.warn("[import] Coerced result was null/empty. Keys found:", Object.keys(parsed as object));
+    return { data: null, error: "AI response did not contain recognizable entity data", stopReason };
+  }
+
+  return { data: coerced, error: null, stopReason };
 }
 
 // ─── POST Handler ─────────────────────────────────────────────────────────────
@@ -279,7 +265,10 @@ export async function POST(request: Request) {
       data: { user },
     } = await supabase.auth.getUser();
     if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { "Content-Type": "application/json" },
+      });
     }
 
     const body = await request.json();
@@ -290,19 +279,19 @@ export async function POST(request: Request) {
     };
 
     if (!content || !fileType || !fileName) {
-      return NextResponse.json(
-        { error: "content, fileType, and fileName are required" },
-        { status: 400 }
+      return new Response(
+        JSON.stringify({ error: "content, fileType, and fileName are required" }),
+        { status: 400, headers: { "Content-Type": "application/json" } }
       );
     }
 
     // Content size guard
     if (content.length > MAX_CONTENT_LENGTH) {
-      return NextResponse.json(
-        {
+      return new Response(
+        JSON.stringify({
           error: `File content is too large (${Math.round(content.length / 1000)}K chars). Maximum is ${MAX_CONTENT_LENGTH / 1000}K characters. Try a smaller file or export fewer records.`,
-        },
-        { status: 413 }
+        }),
+        { status: 413, headers: { "Content-Type": "application/json" } }
       );
     }
 
@@ -333,84 +322,118 @@ export async function POST(request: Request) {
 
     const systemPrompt = buildImportSystemPrompt(stages);
     const userPrompt = buildImportUserPrompt(cleaned, fileType, fileName);
-
     const anthropic = getAnthropicClient();
 
-    // First attempt
-    console.log("[import] Starting first parse attempt for:", fileName);
-    const firstAttempt = await callClaude(anthropic, systemPrompt, userPrompt);
+    // Use a streaming response to prevent Vercel proxy 504 (time-to-first-byte).
+    // We stream whitespace keepalives while Claude generates, then flush the
+    // final JSON result at the end.
+    const encoder = new TextEncoder();
 
-    let parsedResult = firstAttempt.data;
+    const stream = new ReadableStream({
+      async start(controller) {
+        // Send keepalive spaces while waiting for Claude
+        const keepaliveInterval = setInterval(() => {
+          controller.enqueue(encoder.encode(" "));
+        }, 3000);
 
-    // Retry once if parsing failed, with context-aware instructions
-    if (!parsedResult) {
-      console.warn("[import] First attempt failed:", firstAttempt.error);
+        try {
+          // First attempt — stream from Claude
+          console.log("[import] Starting first parse attempt for:", fileName);
+          const firstResult = await streamClaude(anthropic, systemPrompt, userPrompt, () => {
+            // Each chunk from Claude also acts as proof of life
+          });
+          let attempt = processClaudeText(firstResult.text, firstResult.stopReason);
 
-      let retryHint: string;
-      if (firstAttempt.stopReason === "max_tokens") {
-        retryHint =
-          "CRITICAL: Your previous response was truncated because it was too long. You MUST produce shorter output. Focus on the most important entities only. Limit to the first 50 rows of data if needed. Return ONLY valid JSON.";
-      } else if (firstAttempt.error?.includes("JSON parse")) {
-        retryHint =
-          "CRITICAL: Your previous response was not valid JSON. Return ONLY the raw JSON object. Start your response with { and end with }. No markdown code fences, no explanatory text.";
-      } else {
-        retryHint =
-          "IMPORTANT: You must return ONLY valid JSON. No markdown, no code fences, no explanatory text. Start with { and end with }. Just the raw JSON object.";
-      }
+          // Retry once if parsing failed
+          if (!attempt.data) {
+            console.warn("[import] First attempt failed:", attempt.error);
 
-      const retryUserPrompt = `${userPrompt}\n\n${retryHint}`;
+            let retryHint: string;
+            if (attempt.stopReason === "max_tokens") {
+              retryHint =
+                "CRITICAL: Your previous response was truncated because it was too long. You MUST produce shorter output. Focus on the most important entities only. Limit to the first 50 rows of data if needed. Return ONLY valid JSON.";
+            } else if (attempt.error?.includes("JSON parse")) {
+              retryHint =
+                "CRITICAL: Your previous response was not valid JSON. Return ONLY the raw JSON object. Start your response with { and end with }. No markdown code fences, no explanatory text.";
+            } else {
+              retryHint =
+                "IMPORTANT: You must return ONLY valid JSON. No markdown, no code fences, no explanatory text. Start with { and end with }. Just the raw JSON object.";
+            }
 
-      console.log("[import] Starting retry attempt");
-      const secondAttempt = await callClaude(anthropic, systemPrompt, retryUserPrompt);
-      parsedResult = secondAttempt.data;
+            const retryUserPrompt = `${userPrompt}\n\n${retryHint}`;
+            console.log("[import] Starting retry attempt");
+            const secondResult = await streamClaude(anthropic, systemPrompt, retryUserPrompt);
+            const secondAttempt = processClaudeText(secondResult.text, secondResult.stopReason);
 
-      if (!parsedResult) {
-        console.error("[import] Both attempts failed. First:", firstAttempt.error, "| Second:", secondAttempt.error);
+            if (!secondAttempt.data) {
+              console.error("[import] Both attempts failed. First:", attempt.error, "| Second:", secondAttempt.error);
+              clearInterval(keepaliveInterval);
 
-        return NextResponse.json(
-          {
-            error:
-              "Unable to parse this file format. The AI could not extract structured data. Try exporting your CRM data as CSV with clear column headers.",
-            details: {
-              firstAttemptError: firstAttempt.error,
-              retryError: secondAttempt.error,
-              detectedHeaders,
-              wasTruncated,
-              stopReason: secondAttempt.stopReason || firstAttempt.stopReason,
-            },
-          },
-          { status: 422 }
-        );
-      }
-    }
+              const errorPayload = JSON.stringify({
+                error:
+                  "Unable to parse this file format. The AI could not extract structured data. Try exporting your CRM data as CSV with clear column headers.",
+                details: {
+                  firstAttemptError: attempt.error,
+                  retryError: secondAttempt.error,
+                  detectedHeaders,
+                  wasTruncated,
+                  stopReason: secondAttempt.stopReason || attempt.stopReason,
+                },
+              });
+              controller.enqueue(encoder.encode(errorPayload));
+              controller.close();
+              return;
+            }
 
-    // Ensure required arrays exist (defensive)
-    const result = {
-      companies: Array.isArray(parsedResult.companies) ? parsedResult.companies : [],
-      contacts: Array.isArray(parsedResult.contacts) ? parsedResult.contacts : [],
-      deals: Array.isArray(parsedResult.deals) ? parsedResult.deals : [],
-      notes: Array.isArray(parsedResult.notes) ? parsedResult.notes : [],
-      tasks: Array.isArray(parsedResult.tasks) ? parsedResult.tasks : [],
-      stageMappings: parsedResult.stageMappings || {},
-      warnings: parsedResult.warnings || [],
-      summary: parsedResult.summary || "Import data parsed",
-    };
+            attempt = secondAttempt;
+          }
 
-    console.log(
-      "[import] Parse success:",
-      result.companies.length, "companies,",
-      result.contacts.length, "contacts,",
-      result.deals.length, "deals,",
-      result.notes.length, "notes,",
-      result.tasks.length, "tasks"
-    );
+          clearInterval(keepaliveInterval);
 
-    return NextResponse.json(result);
+          // Build final result
+          const parsedResult = attempt.data!;
+          const result = {
+            companies: Array.isArray(parsedResult.companies) ? parsedResult.companies : [],
+            contacts: Array.isArray(parsedResult.contacts) ? parsedResult.contacts : [],
+            deals: Array.isArray(parsedResult.deals) ? parsedResult.deals : [],
+            notes: Array.isArray(parsedResult.notes) ? parsedResult.notes : [],
+            tasks: Array.isArray(parsedResult.tasks) ? parsedResult.tasks : [],
+            stageMappings: parsedResult.stageMappings || {},
+            warnings: parsedResult.warnings || [],
+            summary: parsedResult.summary || "Import data parsed",
+          };
+
+          console.log(
+            "[import] Parse success:",
+            result.companies.length, "companies,",
+            result.contacts.length, "contacts,",
+            result.deals.length, "deals,",
+            result.notes.length, "notes,",
+            result.tasks.length, "tasks"
+          );
+
+          controller.enqueue(encoder.encode(JSON.stringify(result)));
+          controller.close();
+        } catch (error) {
+          clearInterval(keepaliveInterval);
+          console.error("[import] Parse route error:", error);
+          controller.enqueue(
+            encoder.encode(JSON.stringify({ error: "Internal server error during import parsing" }))
+          );
+          controller.close();
+        }
+      },
+    });
+
+    return new Response(stream, {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
   } catch (error) {
     console.error("[import] Parse route error:", error);
-    return NextResponse.json(
-      { error: "Internal server error during import parsing" },
-      { status: 500 }
+    return new Response(
+      JSON.stringify({ error: "Internal server error during import parsing" }),
+      { status: 500, headers: { "Content-Type": "application/json" } }
     );
   }
 }
