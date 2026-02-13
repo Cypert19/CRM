@@ -157,7 +157,7 @@ export async function ensureWorkspace(): Promise<ActionResponse<{ workspaceId: s
 
     const admin = createAdminClient();
 
-    // Check for existing workspace
+    // Check for existing active workspace membership
     const { data: existingMember } = await admin
       .from("workspace_members")
       .select("workspace_id")
@@ -169,7 +169,24 @@ export async function ensureWorkspace(): Promise<ActionResponse<{ workspaceId: s
       return { success: true, data: { workspaceId: existingMember.workspace_id } };
     }
 
-    // No workspace — create one using metadata or default name
+    // Check for pending invite — activate it instead of creating a new workspace
+    const { data: invitedMember } = await admin
+      .from("workspace_members")
+      .select("id, workspace_id")
+      .eq("user_id", user.id)
+      .eq("status", "Invited")
+      .single();
+
+    if (invitedMember) {
+      await admin
+        .from("workspace_members")
+        .update({ status: "Active" })
+        .eq("id", invitedMember.id);
+
+      return { success: true, data: { workspaceId: invitedMember.workspace_id } };
+    }
+
+    // No workspace and no invite — create one using metadata or default name
     const workspaceName = user.user_metadata?.workspace_name || `${user.email?.split("@")[0]}'s Workspace`;
     const result = await createWorkspaceForUser(workspaceName);
     return result;

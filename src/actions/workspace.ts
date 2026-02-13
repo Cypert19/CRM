@@ -159,9 +159,13 @@ export async function inviteMember(input: {
     }
 
     // User doesn't exist — invite via Supabase Auth (sends invite email)
+    const siteUrl = process.env.NEXT_PUBLIC_APP_URL || "https://crm.avolis.ai";
     const { data: invitedUser, error: inviteError } = await admin.auth.admin.inviteUserByEmail(
       emailLower,
-      { data: { invited_to_workspace: ctx.workspaceId } }
+      {
+        data: { invited_to_workspace: ctx.workspaceId },
+        redirectTo: `${siteUrl}/auth/confirm`,
+      }
     );
 
     if (inviteError) return { success: false, error: inviteError.message };
