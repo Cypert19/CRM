@@ -126,7 +126,21 @@ export async function inviteMember(input: {
           return { success: false, error: "This person is already a member of this workspace" };
         }
         if (existingMember.status === "Invited") {
-          return { success: false, error: "This person has already been invited" };
+          // Resend the invite email
+          const siteUrl = process.env.NEXT_PUBLIC_APP_URL || "https://crm.avolis.ai";
+          const { error: resendError } = await admin.auth.admin.inviteUserByEmail(
+            emailLower,
+            {
+              data: { invited_to_workspace: ctx.workspaceId },
+              redirectTo: `${siteUrl}/auth/confirm`,
+            }
+          );
+          if (resendError) {
+            console.error("Resend invite error:", resendError);
+            return { success: false, error: resendError.message };
+          }
+          revalidatePath("/settings/members");
+          return { success: true, data: { email: emailLower, role: input.role, status: "Invited" } };
         }
         if (existingMember.status === "Deactivated") {
           // Reactivate

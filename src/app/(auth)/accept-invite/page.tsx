@@ -86,7 +86,7 @@ export default function AcceptInvitePage() {
     return (
       <>
         <div className="mb-8 text-center">
-          <h1 className="gradient-text text-3xl font-bold">NexusCRM</h1>
+          <h1 className="gradient-text text-3xl font-bold">Nexus AI</h1>
           <p className="mt-2 text-text-secondary">Setting up your account...</p>
         </div>
         <div className="flex justify-center py-8">
@@ -99,7 +99,7 @@ export default function AcceptInvitePage() {
   return (
     <>
       <div className="mb-8 text-center">
-        <h1 className="gradient-text text-3xl font-bold">NexusCRM</h1>
+        <h1 className="gradient-text text-3xl font-bold">Nexus AI</h1>
         <p className="mt-2 text-text-secondary">
           Welcome! Set up your account to get started.
         </p>

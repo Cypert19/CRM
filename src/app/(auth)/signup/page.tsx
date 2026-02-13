@@ -59,7 +59,7 @@ export default function SignupPage() {
   return (
     <>
       <div className="mb-8 text-center">
-        <h1 className="gradient-text text-3xl font-bold">NexusCRM</h1>
+        <h1 className="gradient-text text-3xl font-bold">Nexus AI</h1>
         <p className="mt-2 text-text-secondary">Create your workspace</p>
       </div>
 

@@ -18,8 +18,8 @@ const jetbrainsMono = JetBrains_Mono({
 
 export const metadata: Metadata = {
   title: {
-    default: "NexusCRM",
-    template: "%s | NexusCRM",
+    default: "Nexus AI",
+    template: "%s | Nexus AI",
   },
   description: "AI-Powered Sales Intelligence Platform",
 };

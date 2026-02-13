@@ -1,4 +1,4 @@
-export const APP_NAME = "NexusCRM";
+export const APP_NAME = "Nexus AI";
 export const APP_DESCRIPTION = "AI-Powered Sales Intelligence Platform";
 
 export const DEFAULT_CURRENCY = "USD";

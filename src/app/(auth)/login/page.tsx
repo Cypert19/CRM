@@ -11,7 +11,7 @@ export default function LoginPage() {
     <Suspense fallback={
       <>
         <div className="mb-8 text-center">
-          <h1 className="gradient-text text-3xl font-bold">NexusCRM</h1>
+          <h1 className="gradient-text text-3xl font-bold">Nexus AI</h1>
           <p className="mt-2 text-text-secondary">Loading...</p>
         </div>
         <div className="flex justify-center py-8">
@@ -155,7 +155,7 @@ function LoginForm() {
     return (
       <>
         <div className="mb-8 text-center">
-          <h1 className="gradient-text text-3xl font-bold">NexusCRM</h1>
+          <h1 className="gradient-text text-3xl font-bold">Nexus AI</h1>
           <p className="mt-2 text-text-secondary">Checking authentication...</p>
         </div>
         <div className="flex justify-center py-8">
@@ -168,7 +168,7 @@ function LoginForm() {
   return (
     <>
       <div className="mb-8 text-center">
-        <h1 className="gradient-text text-3xl font-bold">NexusCRM</h1>
+        <h1 className="gradient-text text-3xl font-bold">Nexus AI</h1>
         <p className="mt-2 text-text-secondary">
           Sign in to your account
         </p>
