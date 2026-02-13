@@ -107,12 +107,8 @@ export function ImportView() {
           signal: controller.signal,
         });
 
-        // The response streams keepalive spaces followed by JSON.
-        // Read the full body as text and trim whitespace before parsing.
-        const responseText = (await response.text()).trim();
-
         if (!response.ok) {
-          const errorData = JSON.parse(responseText || "{}");
+          const errorData = await response.json().catch(() => ({}));
 
           // Log full diagnostics for developers
           if (errorData.details) {
@@ -124,17 +120,7 @@ export function ImportView() {
           );
         }
 
-        let rawData: RawAIParseResponse;
-        try {
-          rawData = JSON.parse(responseText);
-        } catch {
-          throw new Error("Failed to parse server response. Please try again.");
-        }
-
-        // Check if the response is actually an error payload
-        if ("error" in rawData && typeof (rawData as Record<string, unknown>).error === "string") {
-          throw new Error((rawData as Record<string, unknown>).error as string);
-        }
+        const rawData: RawAIParseResponse = await response.json();
 
         // Wrap with review metadata
         const parsed: ParsedImportData = {
