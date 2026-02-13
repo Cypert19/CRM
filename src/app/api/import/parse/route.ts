@@ -184,25 +184,26 @@ async function streamClaude(
   userPrompt: string,
   onChunk?: () => void
 ): Promise<{ text: string; stopReason: string | null }> {
-  let fullText = "";
-  let stopReason: string | null = null;
-
-  const stream = await anthropic.messages.stream({
+  const stream = anthropic.messages.stream({
     model: "claude-sonnet-4-5-20250929",
     max_tokens: 16384,
     system: systemPrompt,
     messages: [{ role: "user", content: userPrompt }],
   });
 
-  for await (const event of stream) {
-    if (event.type === "content_block_delta" && event.delta.type === "text_delta") {
-      fullText += event.delta.text;
-      onChunk?.();
-    }
-    if (event.type === "message_delta" && event.delta.stop_reason) {
-      stopReason = event.delta.stop_reason;
-    }
-  }
+  // Register text handler for keepalive signaling
+  stream.on("text", () => {
+    onChunk?.();
+  });
+
+  // Wait for the full message to complete
+  const finalMessage = await stream.finalMessage();
+
+  const textBlock = finalMessage.content.find(
+    (block: { type: string }) => block.type === "text"
+  );
+  const fullText = textBlock ? (textBlock as { type: "text"; text: string }).text : "";
+  const stopReason = finalMessage.stop_reason || null;
 
   return { text: fullText, stopReason };
 }
