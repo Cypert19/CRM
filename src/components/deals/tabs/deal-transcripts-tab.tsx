@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import {
   MessageSquareText,
   Plus,
@@ -33,6 +34,7 @@ type Props = {
 };
 
 export function DealTranscriptsTab({ dealId, dealTitle }: Props) {
+  const router = useRouter();
   const [transcripts, setTranscripts] = useState<TranscriptWithCreator[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -242,6 +244,7 @@ export function DealTranscriptsTab({ dealId, dealTitle }: Props) {
     });
 
     toast.success(`Task "${draftTask.title}" created`);
+    router.refresh(); // Update task counts & sibling tabs
   };
 
   const handleConfirmAll = async (transcript: TranscriptWithCreator) => {
@@ -286,6 +289,7 @@ export function DealTranscriptsTab({ dealId, dealTitle }: Props) {
     });
 
     toast.success(`Created ${successCount} tasks`);
+    router.refresh(); // Update task counts & sibling tabs
   };
 
   const handleUpdateDraft = (transcript: TranscriptWithCreator, updatedTask: DraftTask) => {
