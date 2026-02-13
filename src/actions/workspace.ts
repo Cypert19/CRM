@@ -94,6 +94,147 @@ export async function updateMemberRole(memberId: string, role: "Admin" | "Manage
   }
 }
 
+export async function inviteMember(input: {
+  email: string;
+  role: "Admin" | "Manager" | "Member";
+}): Promise<ActionResponse<{ email: string; role: string; status: string }>> {
+  try {
+    const ctx = await getWorkspaceContext();
+    if (!ctx) return { success: false, error: "No workspace found" };
+    if (ctx.role !== "Admin") return { success: false, error: "Only admins can invite members" };
+
+    const admin = createAdminClient();
+    const emailLower = input.email.trim().toLowerCase();
+
+    // Check if the user already exists in our auth system
+    const { data: existingUsers } = await admin.auth.admin.listUsers();
+    const existingUser = existingUsers?.users?.find(
+      (u) => u.email?.toLowerCase() === emailLower
+    );
+
+    if (existingUser) {
+      // User exists — check if they're already a workspace member
+      const { data: existingMember } = await admin
+        .from("workspace_members")
+        .select("id, status")
+        .eq("workspace_id", ctx.workspaceId)
+        .eq("user_id", existingUser.id)
+        .single();
+
+      if (existingMember) {
+        if (existingMember.status === "Active") {
+          return { success: false, error: "This person is already a member of this workspace" };
+        }
+        if (existingMember.status === "Invited") {
+          return { success: false, error: "This person has already been invited" };
+        }
+        if (existingMember.status === "Deactivated") {
+          // Reactivate
+          const { error: reactivateError } = await admin
+            .from("workspace_members")
+            .update({ status: "Active", role: input.role })
+            .eq("id", existingMember.id);
+
+          if (reactivateError) return { success: false, error: reactivateError.message };
+
+          revalidatePath("/settings/members");
+          return { success: true, data: { email: emailLower, role: input.role, status: "Reactivated" } };
+        }
+      }
+
+      // User exists but is not in this workspace — add them directly as Active
+      const { error: insertError } = await admin
+        .from("workspace_members")
+        .insert({
+          workspace_id: ctx.workspaceId,
+          user_id: existingUser.id,
+          role: input.role,
+          status: "Active",
+        });
+
+      if (insertError) return { success: false, error: insertError.message };
+
+      revalidatePath("/settings/members");
+      return { success: true, data: { email: emailLower, role: input.role, status: "Active" } };
+    }
+
+    // User doesn't exist — invite via Supabase Auth (sends invite email)
+    const { data: invitedUser, error: inviteError } = await admin.auth.admin.inviteUserByEmail(
+      emailLower,
+      { data: { invited_to_workspace: ctx.workspaceId } }
+    );
+
+    if (inviteError) return { success: false, error: inviteError.message };
+    if (!invitedUser?.user) return { success: false, error: "Failed to create invitation" };
+
+    // Create a user record with a placeholder name
+    const { error: userInsertError } = await admin
+      .from("users")
+      .upsert({
+        id: invitedUser.user.id,
+        email: emailLower,
+        full_name: emailLower.split("@")[0],
+      }, { onConflict: "id" });
+
+    if (userInsertError) {
+      console.error("Failed to create user record:", userInsertError);
+    }
+
+    // Add them to workspace as Invited
+    const { error: memberInsertError } = await admin
+      .from("workspace_members")
+      .insert({
+        workspace_id: ctx.workspaceId,
+        user_id: invitedUser.user.id,
+        role: input.role,
+        status: "Invited",
+      });
+
+    if (memberInsertError) return { success: false, error: memberInsertError.message };
+
+    revalidatePath("/settings/members");
+    return { success: true, data: { email: emailLower, role: input.role, status: "Invited" } };
+  } catch (err) {
+    console.error("inviteMember error:", err);
+    return { success: false, error: "Failed to invite member" };
+  }
+}
+
+export async function removeMember(memberId: string): Promise<ActionResponse> {
+  try {
+    const ctx = await getWorkspaceContext();
+    if (!ctx) return { success: false, error: "No workspace found" };
+    if (ctx.role !== "Admin") return { success: false, error: "Only admins can remove members" };
+
+    const admin = createAdminClient();
+
+    // Get the member to check we're not removing ourselves
+    const { data: member, error: fetchError } = await admin
+      .from("workspace_members")
+      .select("user_id, status")
+      .eq("id", memberId)
+      .eq("workspace_id", ctx.workspaceId)
+      .single();
+
+    if (fetchError || !member) return { success: false, error: "Member not found" };
+    if (member.user_id === ctx.userId) return { success: false, error: "You cannot remove yourself from the workspace" };
+
+    // Deactivate instead of hard-delete (preserves history)
+    const { error } = await admin
+      .from("workspace_members")
+      .update({ status: "Deactivated" })
+      .eq("id", memberId)
+      .eq("workspace_id", ctx.workspaceId);
+
+    if (error) return { success: false, error: error.message };
+
+    revalidatePath("/settings/members");
+    return { success: true };
+  } catch {
+    return { success: false, error: "Failed to remove member" };
+  }
+}
+
 export async function createPipelineStage(input: {
   pipeline_id: string;
   name: string;
