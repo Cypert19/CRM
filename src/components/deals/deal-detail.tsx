@@ -16,6 +16,7 @@ import {
   BookOpen,
   DollarSign,
   MessageSquareText,
+  Mail,
 } from "lucide-react";
 import { Button } from "@/components/ui/gradient-button";
 import { ConfirmDeleteDialog } from "@/components/ui/confirm-delete-dialog";
@@ -27,6 +28,7 @@ import { DealFilesTab } from "./tabs/deal-files-tab";
 import { DealCalendarTab } from "./tabs/deal-calendar-tab";
 import { DealRevenueTab } from "./tabs/deal-revenue-tab";
 import { DealTranscriptsTab } from "./tabs/deal-transcripts-tab";
+import { DealEmailsTab } from "./tabs/deal-emails-tab";
 import { deleteDeal } from "@/actions/deals";
 import { useWorkspace } from "@/hooks/use-workspace";
 import { useUser } from "@/hooks/use-user";
@@ -46,6 +48,7 @@ type DealWithRelations = Tables<"deals"> & {
     deal_contacts: number;
     revenue_items: number;
     transcripts: number;
+    emails: number;
   };
 };
 
@@ -64,7 +67,7 @@ export function DealDetail({ deal: initialDeal, pipelineStages = [], allPipeline
   const [deal, setDeal] = useState(initialDeal);
   const [editing, setEditing] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const counts = deal._counts || { tasks: 0, notes: 0, files: 0, events: 0, deal_contacts: 0, revenue_items: 0, transcripts: 0 };
+  const counts = deal._counts || { tasks: 0, notes: 0, files: 0, events: 0, deal_contacts: 0, revenue_items: 0, transcripts: 0, emails: 0 };
 
   const canDelete = role === "Admin" || userId === deal.owner_id;
 
@@ -183,6 +186,15 @@ export function DealDetail({ deal: initialDeal, pipelineStages = [], allPipeline
                 </span>
               )}
             </TabsTrigger>
+            <TabsTrigger value="emails" className="gap-1.5">
+              <Mail className="h-3.5 w-3.5" />
+              Emails
+              {counts.emails > 0 && (
+                <span className="ml-1 rounded-full bg-bg-elevated px-1.5 py-0.5 text-[10px] font-medium text-text-tertiary">
+                  {counts.emails}
+                </span>
+              )}
+            </TabsTrigger>
             <TabsTrigger value="transcripts" className="gap-1.5">
               <MessageSquareText className="h-3.5 w-3.5" />
               Meeting Notes
@@ -232,6 +244,14 @@ export function DealDetail({ deal: initialDeal, pipelineStages = [], allPipeline
 
           <TabsContent value="revenue">
             <DealRevenueTab dealId={deal.id} currency={deal.currency} />
+          </TabsContent>
+
+          <TabsContent value="emails">
+            <DealEmailsTab
+              dealId={deal.id}
+              contactEmail={(deal.contacts as DealWithRelations["contacts"])?.email}
+              contactId={(deal.contacts as DealWithRelations["contacts"])?.id}
+            />
           </TabsContent>
 
           <TabsContent value="transcripts">

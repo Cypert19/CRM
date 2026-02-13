@@ -230,16 +230,19 @@ export async function getDealWithRelations(id: string): Promise<ActionResponse<R
       admin.from("deal_contacts").select("id", { count: "exact", head: true }).eq("deal_id", id),
     ]);
 
-    // These tables may not exist yet (migrations 00019/00020)
+    // These tables may not exist yet (migrations 00019/00020/00026)
     let revenueItemsCount = 0;
     let transcriptsCount = 0;
+    let emailsCount = 0;
     try {
-      const [revenueItemsResult, transcriptsResult] = await Promise.all([
+      const [revenueItemsResult, transcriptsResult, emailsResult] = await Promise.all([
         admin.from("deal_revenue_items").select("id", { count: "exact", head: true }).eq("deal_id", id),
         admin.from("deal_transcripts").select("id", { count: "exact", head: true }).eq("deal_id", id),
+        admin.from("email_logs").select("id", { count: "exact", head: true }).eq("deal_id", id),
       ]);
       revenueItemsCount = revenueItemsResult.count ?? 0;
       transcriptsCount = transcriptsResult.count ?? 0;
+      emailsCount = emailsResult.count ?? 0;
     } catch {
       // Tables don't exist yet
     }
@@ -256,6 +259,7 @@ export async function getDealWithRelations(id: string): Promise<ActionResponse<R
           deal_contacts: dealContactsResult.count ?? 0,
           revenue_items: revenueItemsCount,
           transcripts: transcriptsCount,
+          emails: emailsCount,
         },
       },
     };

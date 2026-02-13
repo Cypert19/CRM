@@ -11,6 +11,7 @@ import {
   FileText,
   CheckCircle2,
   Upload,
+  Mail,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
@@ -23,6 +24,7 @@ const activityIcons: Record<string, LucideIcon> = {
   note_created: FileText,
   task_completed: CheckCircle2,
   file_uploaded: Upload,
+  email_logged: Mail,
 };
 
 const activityLabels: Record<string, string> = {
@@ -34,6 +36,7 @@ const activityLabels: Record<string, string> = {
   note_created: "wrote a note",
   task_completed: "completed a task",
   file_uploaded: "uploaded a file",
+  email_logged: "sent an email",
 };
 
 type Activity = {

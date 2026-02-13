@@ -1383,6 +1383,266 @@ export type Database = {
           },
         ];
       };
+      email_templates: {
+        Row: {
+          id: string;
+          workspace_id: string;
+          name: string;
+          subject: string;
+          body_html: string;
+          body_text: string;
+          variables: string[];
+          category: "general" | "follow_up" | "introduction" | "proposal" | "closing" | "other";
+          is_default: boolean;
+          created_by: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          workspace_id: string;
+          name: string;
+          subject: string;
+          body_html: string;
+          body_text?: string;
+          variables?: string[];
+          category?: "general" | "follow_up" | "introduction" | "proposal" | "closing" | "other";
+          is_default?: boolean;
+          created_by: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          workspace_id?: string;
+          name?: string;
+          subject?: string;
+          body_html?: string;
+          body_text?: string;
+          variables?: string[];
+          category?: "general" | "follow_up" | "introduction" | "proposal" | "closing" | "other";
+          is_default?: boolean;
+          created_by?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "email_templates_workspace_id_fkey";
+            columns: ["workspace_id"];
+            isOneToOne: false;
+            referencedRelation: "workspaces";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "email_templates_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      email_logs: {
+        Row: {
+          id: string;
+          workspace_id: string;
+          sender_id: string;
+          from_email: string;
+          from_name: string;
+          to_emails: string[];
+          cc_emails: string[];
+          bcc_emails: string[];
+          subject: string;
+          body_html: string;
+          body_text: string;
+          contact_id: string | null;
+          deal_id: string | null;
+          company_id: string | null;
+          external_id: string | null;
+          status: "pending" | "sending" | "sent" | "delivered" | "bounced" | "failed";
+          error_message: string | null;
+          template_id: string | null;
+          opened_at: string | null;
+          clicked_at: string | null;
+          open_count: number;
+          click_count: number;
+          thread_id: string | null;
+          in_reply_to: string | null;
+          direction: "outbound" | "inbound";
+          tags: string[];
+          metadata: Record<string, unknown>;
+          sent_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          workspace_id: string;
+          sender_id: string;
+          from_email: string;
+          from_name: string;
+          to_emails: string[];
+          cc_emails?: string[];
+          bcc_emails?: string[];
+          subject: string;
+          body_html: string;
+          body_text?: string;
+          contact_id?: string | null;
+          deal_id?: string | null;
+          company_id?: string | null;
+          external_id?: string | null;
+          status?: "pending" | "sending" | "sent" | "delivered" | "bounced" | "failed";
+          error_message?: string | null;
+          template_id?: string | null;
+          opened_at?: string | null;
+          clicked_at?: string | null;
+          open_count?: number;
+          click_count?: number;
+          thread_id?: string | null;
+          in_reply_to?: string | null;
+          direction?: "outbound" | "inbound";
+          tags?: string[];
+          metadata?: Record<string, unknown>;
+          sent_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          workspace_id?: string;
+          sender_id?: string;
+          from_email?: string;
+          from_name?: string;
+          to_emails?: string[];
+          cc_emails?: string[];
+          bcc_emails?: string[];
+          subject?: string;
+          body_html?: string;
+          body_text?: string;
+          contact_id?: string | null;
+          deal_id?: string | null;
+          company_id?: string | null;
+          external_id?: string | null;
+          status?: "pending" | "sending" | "sent" | "delivered" | "bounced" | "failed";
+          error_message?: string | null;
+          template_id?: string | null;
+          opened_at?: string | null;
+          clicked_at?: string | null;
+          open_count?: number;
+          click_count?: number;
+          thread_id?: string | null;
+          in_reply_to?: string | null;
+          direction?: "outbound" | "inbound";
+          tags?: string[];
+          metadata?: Record<string, unknown>;
+          sent_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "email_logs_workspace_id_fkey";
+            columns: ["workspace_id"];
+            isOneToOne: false;
+            referencedRelation: "workspaces";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "email_logs_sender_id_fkey";
+            columns: ["sender_id"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "email_logs_contact_id_fkey";
+            columns: ["contact_id"];
+            isOneToOne: false;
+            referencedRelation: "contacts";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "email_logs_deal_id_fkey";
+            columns: ["deal_id"];
+            isOneToOne: false;
+            referencedRelation: "deals";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "email_logs_company_id_fkey";
+            columns: ["company_id"];
+            isOneToOne: false;
+            referencedRelation: "companies";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "email_logs_template_id_fkey";
+            columns: ["template_id"];
+            isOneToOne: false;
+            referencedRelation: "email_templates";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "email_logs_in_reply_to_fkey";
+            columns: ["in_reply_to"];
+            isOneToOne: false;
+            referencedRelation: "email_logs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      email_events: {
+        Row: {
+          id: string;
+          workspace_id: string;
+          email_log_id: string;
+          event_type: "sent" | "delivered" | "opened" | "clicked" | "bounced" | "complained" | "delivery_delayed";
+          timestamp: string;
+          data: Record<string, unknown>;
+          link_url: string | null;
+          bounce_type: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          workspace_id: string;
+          email_log_id: string;
+          event_type: "sent" | "delivered" | "opened" | "clicked" | "bounced" | "complained" | "delivery_delayed";
+          timestamp: string;
+          data?: Record<string, unknown>;
+          link_url?: string | null;
+          bounce_type?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          workspace_id?: string;
+          email_log_id?: string;
+          event_type?: "sent" | "delivered" | "opened" | "clicked" | "bounced" | "complained" | "delivery_delayed";
+          timestamp?: string;
+          data?: Record<string, unknown>;
+          link_url?: string | null;
+          bounce_type?: string | null;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "email_events_workspace_id_fkey";
+            columns: ["workspace_id"];
+            isOneToOne: false;
+            referencedRelation: "workspaces";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "email_events_email_log_id_fkey";
+            columns: ["email_log_id"];
+            isOneToOne: false;
+            referencedRelation: "email_logs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
     };
     // eslint-disable-next-line @typescript-eslint/no-empty-object-type
     Views: {};

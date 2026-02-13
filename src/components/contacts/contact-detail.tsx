@@ -24,6 +24,7 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/gradient-button";
 import { ConfirmDeleteDialog } from "@/components/ui/confirm-delete-dialog";
+import { ContactEmailsSection } from "./contact-emails-section";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -252,6 +253,9 @@ export function ContactDetail({ contact: initialContact }: { contact: Tables<"co
               ))}
             </div>
           </GlassCard>
+
+          {/* Email History */}
+          <ContactEmailsSection contactId={contact.id} contactEmail={contact.email} />
         </div>
 
         <div className="space-y-6">
