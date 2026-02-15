@@ -84,6 +84,11 @@ export async function POST(request: Request) {
     // Normalize tasks with client-side IDs
     const VALID_TASK_TYPES = ["Call", "Email", "Meeting", "Follow-Up", "Demo", "Proposal", "Automations", "Website Development", "Custom Development", "Training", "Consulting", "Other"];
 
+    // Default due date: 7 days from today (when AI doesn't detect a specific date)
+    const defaultDue = new Date();
+    defaultDue.setDate(defaultDue.getDate() + 7);
+    const defaultDueStr = defaultDue.toISOString().split("T")[0];
+
     const normalizedTasks = tasks.map((t: Record<string, unknown>, idx: number) => ({
       id: `draft-${Date.now()}-${idx}`,
       title: typeof t.title === "string" ? t.title : `Task ${idx + 1}`,
@@ -93,7 +98,7 @@ export async function POST(request: Request) {
       priority: ["Low", "Medium", "High", "Urgent"].includes(t.priority as string)
         ? t.priority
         : "Medium",
-      due_date: typeof t.due_date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(t.due_date) ? t.due_date : null,
+      due_date: typeof t.due_date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(t.due_date) ? t.due_date : defaultDueStr,
       notes: typeof t.notes === "string" ? t.notes : "No additional context provided.",
       assignee_id: null,
       confirmed: false,

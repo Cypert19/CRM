@@ -74,6 +74,13 @@ export async function createTask(input: unknown): Promise<ActionResponse<Tables<
     const ctx = await getWorkspaceContext();
     if (!ctx) return { success: false, error: "No workspace found. Please log out and log back in." };
 
+    // Default due_date to 7 days from now if not specified
+    if (!parsed.data.due_date) {
+      const defaultDue = new Date();
+      defaultDue.setDate(defaultDue.getDate() + 7);
+      parsed.data.due_date = defaultDue.toISOString().split("T")[0];
+    }
+
     const admin = createAdminClient();
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

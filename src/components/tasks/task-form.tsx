@@ -54,6 +54,12 @@ const CATEGORY_LABELS: Record<string, string> = {
 
 const NONE_VALUE = "__none__";
 
+function getDefaultDueDate(): string {
+  const d = new Date();
+  d.setDate(d.getDate() + 7);
+  return d.toISOString().split("T")[0];
+}
+
 function getInitialState(task?: TaskWithRelations, dealId?: string, contactId?: string) {
   return {
     title: task?.title ?? "",
@@ -63,7 +69,7 @@ function getInitialState(task?: TaskWithRelations, dealId?: string, contactId?: 
     assignee_id: task?.assignee_id ?? NONE_VALUE,
     deal_id: task?.deal_id ?? dealId ?? NONE_VALUE,
     contact_id: task?.contact_id ?? contactId ?? NONE_VALUE,
-    due_date: task?.due_date ?? "",
+    due_date: task?.due_date ?? (task ? "" : getDefaultDueDate()),
     due_time: task?.due_time ?? "",
     start_date: task?.start_date ?? "",
     end_date: task?.end_date ?? "",

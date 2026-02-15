@@ -427,10 +427,14 @@ function PipelineStagesList({
   const [editName, setEditName] = useState("");
   const [editColor, setEditColor] = useState("");
   const [editProbability, setEditProbability] = useState("");
+  const [editIsWon, setEditIsWon] = useState(false);
+  const [editIsLost, setEditIsLost] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
   const [newName, setNewName] = useState("");
   const [newColor, setNewColor] = useState(STAGE_COLORS[0]);
   const [newProbability, setNewProbability] = useState("");
+  const [newIsWon, setNewIsWon] = useState(false);
+  const [newIsLost, setNewIsLost] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const startEdit = (stage: Tables<"pipeline_stages">) => {
@@ -438,6 +442,8 @@ function PipelineStagesList({
     setEditName(stage.name);
     setEditColor(stage.color);
     setEditProbability(String(stage.default_probability));
+    setEditIsWon(stage.is_won);
+    setEditIsLost(stage.is_lost);
   };
 
   const cancelEdit = () => {
@@ -445,6 +451,8 @@ function PipelineStagesList({
     setEditName("");
     setEditColor("");
     setEditProbability("");
+    setEditIsWon(false);
+    setEditIsLost(false);
   };
 
   const saveEdit = async () => {
@@ -456,6 +464,8 @@ function PipelineStagesList({
       name: editName.trim(),
       color: editColor,
       default_probability: Number(editProbability) || 0,
+      is_won: editIsWon,
+      is_lost: editIsLost,
     });
 
     setLoading(false);
@@ -480,6 +490,8 @@ function PipelineStagesList({
       color: newColor,
       display_order: stages.length,
       default_probability: Number(newProbability) || 0,
+      is_won: newIsWon,
+      is_lost: newIsLost,
     });
 
     setLoading(false);
@@ -489,6 +501,8 @@ function PipelineStagesList({
       setNewName("");
       setNewColor(STAGE_COLORS[0]);
       setNewProbability("");
+      setNewIsWon(false);
+      setNewIsLost(false);
       setShowAddForm(false);
     } else {
       toast.error(result.error || "Failed to create stage");
@@ -575,6 +589,50 @@ function PipelineStagesList({
                         }}
                       />
                     ))}
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="block text-xs text-text-secondary">Stage Type</label>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const next = !editIsWon;
+                        setEditIsWon(next);
+                        if (next) {
+                          setEditIsLost(false);
+                          setEditProbability("100");
+                        }
+                      }}
+                      className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium border transition-colors ${
+                        editIsWon
+                          ? "border-signal-success/50 bg-signal-success/20 text-signal-success"
+                          : "border-border-default bg-bg-elevated/50 text-text-tertiary hover:text-text-secondary"
+                      }`}
+                    >
+                      <Trophy className="h-3.5 w-3.5" />
+                      Won
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const next = !editIsLost;
+                        setEditIsLost(next);
+                        if (next) {
+                          setEditIsWon(false);
+                          setEditProbability("0");
+                        }
+                      }}
+                      className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium border transition-colors ${
+                        editIsLost
+                          ? "border-signal-danger/50 bg-signal-danger/20 text-signal-danger"
+                          : "border-border-default bg-bg-elevated/50 text-text-tertiary hover:text-text-secondary"
+                      }`}
+                    >
+                      <XCircle className="h-3.5 w-3.5" />
+                      Lost
+                    </button>
                   </div>
                 </div>
 
@@ -684,6 +742,50 @@ function PipelineStagesList({
               </div>
             </div>
 
+            <div className="space-y-1.5">
+              <label className="block text-xs text-text-secondary">Stage Type</label>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const next = !newIsWon;
+                    setNewIsWon(next);
+                    if (next) {
+                      setNewIsLost(false);
+                      setNewProbability("100");
+                    }
+                  }}
+                  className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium border transition-colors ${
+                    newIsWon
+                      ? "border-signal-success/50 bg-signal-success/20 text-signal-success"
+                      : "border-border-default bg-bg-elevated/50 text-text-tertiary hover:text-text-secondary"
+                  }`}
+                >
+                  <Trophy className="h-3.5 w-3.5" />
+                  Won
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const next = !newIsLost;
+                    setNewIsLost(next);
+                    if (next) {
+                      setNewIsWon(false);
+                      setNewProbability("0");
+                    }
+                  }}
+                  className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium border transition-colors ${
+                    newIsLost
+                      ? "border-signal-danger/50 bg-signal-danger/20 text-signal-danger"
+                      : "border-border-default bg-bg-elevated/50 text-text-tertiary hover:text-text-secondary"
+                  }`}
+                >
+                  <XCircle className="h-3.5 w-3.5" />
+                  Lost
+                </button>
+              </div>
+            </div>
+
             <div className="flex justify-end gap-2">
               <Button
                 variant="ghost"
@@ -692,6 +794,8 @@ function PipelineStagesList({
                   setShowAddForm(false);
                   setNewName("");
                   setNewProbability("");
+                  setNewIsWon(false);
+                  setNewIsLost(false);
                 }}
                 disabled={loading}
               >
