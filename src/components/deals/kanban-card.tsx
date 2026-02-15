@@ -41,6 +41,7 @@ export function KanbanCard({ deal, onClick }: KanbanCardProps) {
       style={style}
       {...attributes}
       {...listeners}
+      data-kanban-card
       onClick={() => onClick(deal)}
       className={cn(
         "glass-panel cursor-grab rounded-xl p-4 transition-all duration-200 active:cursor-grabbing",

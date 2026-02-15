@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import {
   DndContext,
   DragOverlay,
@@ -66,6 +66,55 @@ export function KanbanBoard({ stages, deals, onDealClick, onAddDeal }: KanbanBoa
     await moveDealStage({ id: dealId, stage_id: newStageId });
   };
 
+  // ─── Grab-to-Pan Scrolling ──────────────────────────────────────────────────
+  const containerRef = useRef<HTMLDivElement>(null);
+  const panState = useRef({ isPanning: false, startX: 0, scrollLeftStart: 0 });
+
+  const handlePointerDown = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
+    // Don't pan if clicking on a card — let dnd-kit handle it
+    const target = e.target as HTMLElement;
+    if (target.closest("[data-kanban-card]")) return;
+
+    // Don't pan if clicking on buttons or interactive elements
+    if (target.closest("button, a, input, select, textarea")) return;
+
+    const container = containerRef.current;
+    if (!container) return;
+
+    panState.current = {
+      isPanning: true,
+      startX: e.clientX,
+      scrollLeftStart: container.scrollLeft,
+    };
+
+    container.setPointerCapture(e.pointerId);
+    container.style.cursor = "grabbing";
+    container.classList.add("select-none");
+  }, []);
+
+  const handlePointerMove = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
+    if (!panState.current.isPanning) return;
+
+    const container = containerRef.current;
+    if (!container) return;
+
+    const dx = e.clientX - panState.current.startX;
+    container.scrollLeft = panState.current.scrollLeftStart - dx;
+  }, []);
+
+  const handlePointerUp = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
+    if (!panState.current.isPanning) return;
+
+    panState.current.isPanning = false;
+
+    const container = containerRef.current;
+    if (!container) return;
+
+    container.releasePointerCapture(e.pointerId);
+    container.style.cursor = "";
+    container.classList.remove("select-none");
+  }, []);
+
   return (
     <DndContext
       sensors={sensors}
@@ -73,7 +122,14 @@ export function KanbanBoard({ stages, deals, onDealClick, onAddDeal }: KanbanBoa
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
     >
-      <div className="flex gap-4 overflow-x-auto pb-4">
+      <div
+        ref={containerRef}
+        className="flex gap-4 overflow-x-auto pb-4 cursor-grab"
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp}
+        onPointerCancel={handlePointerUp}
+      >
         {stages
           .filter((s) => !s.is_lost)
           .sort((a, b) => a.display_order - b.display_order)
