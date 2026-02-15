@@ -87,7 +87,18 @@ export function FocusModeOverlay() {
   const handleMarkDone = async () => {
     if (!currentTask) return;
 
-    const result = await updateTask({ id: currentTask.id, status: "Done" });
+    // Compute elapsed focus time for this task
+    const { focusStartedAt } = useFocusStore.getState();
+    const elapsedMinutes = focusStartedAt
+      ? Math.max(1, Math.round((Date.now() - new Date(focusStartedAt).getTime()) / 60000))
+      : undefined;
+
+    const result = await updateTask({
+      id: currentTask.id,
+      status: "Done",
+      actual_minutes: elapsedMinutes,
+      completed_at: new Date().toISOString(),
+    });
     if (result.success) {
       toast.success("Task marked as done!");
       markCurrentCompleted();

@@ -1,15 +1,23 @@
 import { PageHeader } from "@/components/layout/page-header";
-import { getReportData } from "@/actions/reports";
+import { getReportData, getTeamProductivityData, getActiveClientsData } from "@/actions/reports";
+import { getWorkspaceContext } from "@/lib/workspace";
 import { ReportsPageTabs } from "@/components/reports/reports-page-tabs";
 
 export const metadata = { title: "Reports" };
 
 export default async function ReportsPage() {
-  const result = await getReportData();
+  const [result, productivityResult, activeClientsResult, ctx] = await Promise.all([
+    getReportData(),
+    getTeamProductivityData(),
+    getActiveClientsData(),
+    getWorkspaceContext(),
+  ]);
 
   if (!result.success) {
     console.error("[reports page] getReportData failed:", result.error);
   }
+
+  const isAdmin = ctx?.role === "Admin";
 
   const emptyBreakdown = { audit_fee: 0, retainer_monthly: 0, custom_dev_fee: 0 };
   const emptyData = {
@@ -44,11 +52,24 @@ export default async function ReportsPage() {
 
   const data = result.success && result.data ? result.data : emptyData;
 
+  const productivityData = productivityResult.success && productivityResult.data
+    ? productivityResult.data
+    : { members: [], team_totals: { total_overdue: 0, total_completed: 0, total_tasks: 0, avg_completion_rate: 0, avg_focus_minutes: 0 } };
+
+  const activeClientsData = activeClientsResult.success && activeClientsResult.data
+    ? activeClientsResult.data
+    : { deals: [], stages: [], totals: { total_deals: 0, total_monthly_revenue: 0, total_value: 0, avg_days_active: 0 } };
+
   return (
     <>
       <PageHeader title="Reports" description="Pipeline analytics and insights" />
       <div className="mt-6">
-        <ReportsPageTabs data={data} />
+        <ReportsPageTabs
+          data={data}
+          isAdmin={isAdmin}
+          productivityData={productivityData}
+          activeClientsData={activeClientsData}
+        />
       </div>
     </>
   );

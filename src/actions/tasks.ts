@@ -113,6 +113,12 @@ export async function updateTask(input: unknown): Promise<ActionResponse<Tables<
     if (!parsed.success) return { success: false, error: parsed.error.errors[0]?.message ?? "Invalid input" };
 
     const { id, ...updates } = parsed.data;
+
+    // Auto-set completed_at when marking as Done (if not already provided)
+    if (updates.status === "Done" && !updates.completed_at) {
+      updates.completed_at = new Date().toISOString();
+    }
+
     const admin = createAdminClient();
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

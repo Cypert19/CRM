@@ -382,3 +382,369 @@ export async function getReportData(): Promise<ActionResponse<ReportSummary>> {
     return { success: false, error: "Failed to generate report data" };
   }
 }
+
+// ============================================================
+// Team Productivity (Admin-Only)
+// ============================================================
+
+export type OverdueTaskItem = {
+  id: string;
+  title: string;
+  due_date: string;
+  priority: string;
+  deal_title: string | null;
+  days_overdue: number;
+};
+
+export type MemberProductivity = {
+  user_id: string;
+  full_name: string;
+  avatar_url: string | null;
+  total_tasks: number;
+  completed_tasks: number;
+  overdue_tasks: number;
+  in_progress_tasks: number;
+  overdue_task_list: OverdueTaskItem[];
+  avg_completion_minutes: number;
+  total_focus_minutes: number;
+  tasks_with_focus_data: number;
+  completion_rate: number;
+  avg_days_to_complete: number;
+  on_time_rate: number;
+};
+
+export type TeamProductivityData = {
+  members: MemberProductivity[];
+  team_totals: {
+    total_overdue: number;
+    total_completed: number;
+    total_tasks: number;
+    avg_completion_rate: number;
+    avg_focus_minutes: number;
+  };
+};
+
+export async function getTeamProductivityData(): Promise<ActionResponse<TeamProductivityData>> {
+  try {
+    const ctx = await getWorkspaceContext();
+    if (!ctx) return { success: false, error: "No workspace found" };
+
+    const admin = createAdminClient();
+
+    // Fetch all active workspace members with user info
+    const { data: members, error: membersError } = await admin
+      .from("workspace_members")
+      .select("user_id, users(id, full_name, avatar_url)")
+      .eq("workspace_id", ctx.workspaceId)
+      .eq("status", "Active");
+
+    if (membersError) return { success: false, error: membersError.message };
+
+    // Fetch all tasks with deal info
+    const { data: tasks, error: tasksError } = await admin
+      .from("tasks")
+      .select("id, title, status, priority, due_date, assignee_id, completed_at, actual_minutes, created_at, deals!tasks_deal_id_fkey(id, title)")
+      .eq("workspace_id", ctx.workspaceId);
+
+    if (tasksError) return { success: false, error: tasksError.message };
+
+    const allTasks = tasks ?? [];
+    const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+
+    const memberProductivity: MemberProductivity[] = (members ?? []).map((m) => {
+      const user = m.users as unknown as { id: string; full_name: string; avatar_url: string | null } | null;
+      const userId = m.user_id;
+      const memberTasks = allTasks.filter((t) => t.assignee_id === userId);
+
+      const completedTasks = memberTasks.filter((t) => t.status === "Done");
+      const overdueTasks = memberTasks.filter(
+        (t) => t.due_date && t.due_date < today && t.status !== "Done" && t.status !== "Cancelled"
+      );
+      const inProgressTasks = memberTasks.filter((t) => t.status === "In Progress");
+
+      // Overdue detail list
+      const overdue_task_list: OverdueTaskItem[] = overdueTasks
+        .map((t) => ({
+          id: t.id,
+          title: t.title,
+          due_date: t.due_date!,
+          priority: t.priority,
+          deal_title: (t.deals as unknown as { title: string } | null)?.title ?? null,
+          days_overdue: Math.floor((new Date(today).getTime() - new Date(t.due_date!).getTime()) / (1000 * 60 * 60 * 24)),
+        }))
+        .sort((a, b) => b.days_overdue - a.days_overdue);
+
+      // Focus time metrics
+      const tasksWithFocus = completedTasks.filter((t) => t.actual_minutes && t.actual_minutes > 0);
+      const totalFocusMinutes = tasksWithFocus.reduce((s, t) => s + (t.actual_minutes ?? 0), 0);
+      const avgCompletionMinutes = tasksWithFocus.length > 0
+        ? Math.round(totalFocusMinutes / tasksWithFocus.length)
+        : 0;
+
+      // Avg days to complete (created_at → completed_at)
+      const tasksWithCompletion = completedTasks.filter((t) => t.completed_at);
+      const avgDaysToComplete = tasksWithCompletion.length > 0
+        ? Math.round(
+            tasksWithCompletion.reduce((s, t) => {
+              const created = new Date(t.created_at);
+              const completed = new Date(t.completed_at!);
+              return s + (completed.getTime() - created.getTime()) / (1000 * 60 * 60 * 24);
+            }, 0) / tasksWithCompletion.length
+          )
+        : 0;
+
+      // On-time rate: % of completed tasks that were completed before/on due date
+      const completedWithDue = completedTasks.filter((t) => t.due_date && t.completed_at);
+      const onTimeTasks = completedWithDue.filter(
+        (t) => t.completed_at!.slice(0, 10) <= t.due_date!
+      );
+      const onTimeRate = completedWithDue.length > 0
+        ? Math.round((onTimeTasks.length / completedWithDue.length) * 100)
+        : 0;
+
+      const completionRate = memberTasks.length > 0
+        ? Math.round((completedTasks.length / memberTasks.length) * 100)
+        : 0;
+
+      return {
+        user_id: userId,
+        full_name: user?.full_name ?? "Unknown",
+        avatar_url: user?.avatar_url ?? null,
+        total_tasks: memberTasks.length,
+        completed_tasks: completedTasks.length,
+        overdue_tasks: overdueTasks.length,
+        in_progress_tasks: inProgressTasks.length,
+        overdue_task_list,
+        avg_completion_minutes: avgCompletionMinutes,
+        total_focus_minutes: totalFocusMinutes,
+        tasks_with_focus_data: tasksWithFocus.length,
+        completion_rate: completionRate,
+        avg_days_to_complete: avgDaysToComplete,
+        on_time_rate: onTimeRate,
+      };
+    });
+
+    // Sort by overdue count descending
+    memberProductivity.sort((a, b) => b.overdue_tasks - a.overdue_tasks);
+
+    const totalOverdue = memberProductivity.reduce((s, m) => s + m.overdue_tasks, 0);
+    const totalCompleted = memberProductivity.reduce((s, m) => s + m.completed_tasks, 0);
+    const totalTasks = memberProductivity.reduce((s, m) => s + m.total_tasks, 0);
+    const avgCompletionRate = memberProductivity.length > 0
+      ? Math.round(memberProductivity.reduce((s, m) => s + m.completion_rate, 0) / memberProductivity.length)
+      : 0;
+    const avgFocus = memberProductivity.filter((m) => m.tasks_with_focus_data > 0);
+    const avgFocusMinutes = avgFocus.length > 0
+      ? Math.round(avgFocus.reduce((s, m) => s + m.avg_completion_minutes, 0) / avgFocus.length)
+      : 0;
+
+    return {
+      success: true,
+      data: {
+        members: memberProductivity,
+        team_totals: {
+          total_overdue: totalOverdue,
+          total_completed: totalCompleted,
+          total_tasks: totalTasks,
+          avg_completion_rate: avgCompletionRate,
+          avg_focus_minutes: avgFocusMinutes,
+        },
+      },
+    };
+  } catch (err) {
+    console.error("Productivity report error:", err);
+    return { success: false, error: "Failed to generate productivity data" };
+  }
+}
+
+// ============================================================
+// Active Clients (Won-Stage Deals)
+// ============================================================
+
+export type ActiveClientDeal = {
+  id: string;
+  title: string;
+  value: number;
+  currency: string;
+  stage_name: string;
+  stage_color: string;
+  stage_display_order: number;
+  owner_name: string;
+  owner_avatar: string | null;
+  company_name: string | null;
+  contact_name: string | null;
+  contact_email: string | null;
+  closed_at: string | null;
+  days_since_won: number;
+  payment_type: string | null;
+  payment_frequency: string | null;
+  audit_fee: number;
+  retainer_monthly: number;
+  custom_dev_fee: number;
+  monthly_revenue: number;
+  next_step: string | null;
+  priority: string | null;
+  services_description: string | null;
+  task_count: number;
+  overdue_task_count: number;
+};
+
+export type ActiveClientsStage = {
+  name: string;
+  color: string;
+  display_order: number;
+  deal_count: number;
+  total_value: number;
+};
+
+export type ActiveClientsData = {
+  deals: ActiveClientDeal[];
+  stages: ActiveClientsStage[];
+  totals: {
+    total_deals: number;
+    total_monthly_revenue: number;
+    total_value: number;
+    avg_days_active: number;
+  };
+};
+
+export async function getActiveClientsData(): Promise<ActionResponse<ActiveClientsData>> {
+  try {
+    const ctx = await getWorkspaceContext();
+    if (!ctx) return { success: false, error: "No workspace found" };
+
+    const admin = createAdminClient();
+
+    // Fetch all won-stage deals with relations
+    const { data: wonStages, error: stagesError } = await admin
+      .from("pipeline_stages")
+      .select("id, name, color, display_order")
+      .eq("workspace_id", ctx.workspaceId)
+      .eq("is_won", true)
+      .order("display_order", { ascending: true });
+
+    if (stagesError) return { success: false, error: stagesError.message };
+    if (!wonStages || wonStages.length === 0) {
+      return { success: true, data: { deals: [], stages: [], totals: { total_deals: 0, total_monthly_revenue: 0, total_value: 0, avg_days_active: 0 } } };
+    }
+
+    const wonStageIds = wonStages.map((s) => s.id);
+
+    const { data: deals, error: dealsError } = await admin
+      .from("deals")
+      .select(`
+        id, title, value, currency, stage_id, closed_at, priority, next_step,
+        payment_type, payment_frequency, services_description,
+        audit_fee, retainer_monthly, custom_dev_fee,
+        users!deals_owner_id_fkey(id, full_name, avatar_url),
+        companies!deals_company_id_fkey(id, company_name),
+        contacts!deals_contact_id_fkey(id, first_name, last_name, email)
+      `)
+      .eq("workspace_id", ctx.workspaceId)
+      .in("stage_id", wonStageIds)
+      .is("deleted_at", null)
+      .order("closed_at", { ascending: true });
+
+    if (dealsError) return { success: false, error: dealsError.message };
+
+    // Fetch task counts per deal (total + overdue)
+    const dealIds = (deals ?? []).map((d) => d.id);
+    const tasksByDeal: Record<string, { total: number; overdue: number }> = {};
+
+    if (dealIds.length > 0) {
+      const { data: dealTasks } = await admin
+        .from("tasks")
+        .select("id, deal_id, status, due_date")
+        .eq("workspace_id", ctx.workspaceId)
+        .in("deal_id", dealIds);
+
+      const today = new Date().toISOString().slice(0, 10);
+      for (const t of dealTasks ?? []) {
+        if (!t.deal_id) continue;
+        if (!tasksByDeal[t.deal_id]) tasksByDeal[t.deal_id] = { total: 0, overdue: 0 };
+        tasksByDeal[t.deal_id].total += 1;
+        if (t.due_date && t.due_date < today && t.status !== "Done" && t.status !== "Cancelled") {
+          tasksByDeal[t.deal_id].overdue += 1;
+        }
+      }
+    }
+
+    const now = new Date();
+    const stageMap = new Map<string, { name: string; color: string; display_order: number }>();
+    for (const s of wonStages) stageMap.set(s.id, s);
+
+    const activeDeals: ActiveClientDeal[] = (deals ?? []).map((d) => {
+      const stage = stageMap.get(d.stage_id);
+      const owner = d.users as unknown as { full_name: string; avatar_url: string | null } | null;
+      const company = d.companies as unknown as { company_name: string } | null;
+      const contact = d.contacts as unknown as { first_name: string; last_name: string; email: string | null } | null;
+      const daysSinceWon = d.closed_at
+        ? Math.floor((now.getTime() - new Date(d.closed_at).getTime()) / (1000 * 60 * 60 * 24))
+        : 0;
+      const retainer = Number(d.retainer_monthly ?? 0);
+
+      return {
+        id: d.id,
+        title: d.title,
+        value: Number(d.value),
+        currency: d.currency,
+        stage_name: stage?.name ?? "Won",
+        stage_color: stage?.color ?? "#10B981",
+        stage_display_order: stage?.display_order ?? 0,
+        owner_name: owner?.full_name ?? "Unassigned",
+        owner_avatar: owner?.avatar_url ?? null,
+        company_name: company?.company_name ?? null,
+        contact_name: contact ? `${contact.first_name} ${contact.last_name}`.trim() : null,
+        contact_email: contact?.email ?? null,
+        closed_at: d.closed_at,
+        days_since_won: daysSinceWon,
+        payment_type: d.payment_type,
+        payment_frequency: d.payment_frequency,
+        audit_fee: Number(d.audit_fee ?? 0),
+        retainer_monthly: retainer,
+        custom_dev_fee: Number(d.custom_dev_fee ?? 0),
+        monthly_revenue: retainer,
+        next_step: d.next_step,
+        priority: d.priority,
+        services_description: d.services_description,
+        task_count: tasksByDeal[d.id]?.total ?? 0,
+        overdue_task_count: tasksByDeal[d.id]?.overdue ?? 0,
+      };
+    });
+
+    // Build stage summary
+    const stageSummary: ActiveClientsStage[] = wonStages.map((s) => {
+      const stageDeals = activeDeals.filter((d) => d.stage_name === s.name);
+      return {
+        name: s.name,
+        color: s.color,
+        display_order: s.display_order,
+        deal_count: stageDeals.length,
+        total_value: stageDeals.reduce((sum, d) => sum + d.value, 0),
+      };
+    });
+
+    const totalMonthlyRevenue = activeDeals.reduce((s, d) => s + d.monthly_revenue, 0);
+    const totalValue = activeDeals.reduce((s, d) => s + d.value, 0);
+    const avgDaysActive = activeDeals.length > 0
+      ? Math.round(activeDeals.reduce((s, d) => s + d.days_since_won, 0) / activeDeals.length)
+      : 0;
+
+    return {
+      success: true,
+      data: {
+        deals: activeDeals,
+        stages: stageSummary,
+        totals: {
+          total_deals: activeDeals.length,
+          total_monthly_revenue: totalMonthlyRevenue,
+          total_value: totalValue,
+          avg_days_active: avgDaysActive,
+        },
+      },
+    };
+  } catch (err) {
+    console.error("Active clients report error:", err);
+    return { success: false, error: "Failed to generate active clients data" };
+  }
+}

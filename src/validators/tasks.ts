@@ -24,6 +24,8 @@ export const createTaskSchema = z.object({
 
 export const updateTaskSchema = createTaskSchema.partial().extend({
   id: z.string().uuid(),
+  completed_at: z.string().nullable().optional(),
+  focus_started_at: z.string().nullable().optional(),
 });
 
 export type CreateTaskInput = z.infer<typeof createTaskSchema>;
