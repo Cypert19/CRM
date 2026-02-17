@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getWorkspaceContext } from "@/lib/workspace";
-import { generateApiKey, hashApiKey } from "@/lib/api/keys";
+import { generateApiKey } from "@/lib/api/keys";
 import type { ActionResponse } from "@/types/common";
 
 type ApiKeyInfo = {

@@ -115,16 +115,32 @@ export function ApiKeysSettingsView({
     setCreating(false);
 
     if (result.success && result.data) {
-      setShowCreateDialog(false);
-      setNewKeyName("");
-      setNewKeyDescription("");
-      setNewKeyRevealed({
+      const revealData = {
         raw_key: result.data.raw_key,
         key_prefix: result.data.key_prefix,
         name: newKeyName.trim(),
-      });
-      // Refresh page to get updated list
-      window.location.reload();
+      };
+      const desc = newKeyDescription.trim() || null;
+      setShowCreateDialog(false);
+      setNewKeyName("");
+      setNewKeyDescription("");
+      // Add the new key to local state so it appears in the list immediately
+      setKeys((prev) => [
+        {
+          id: result.data!.id,
+          key_prefix: result.data!.key_prefix,
+          name: revealData.name,
+          description: desc,
+          created_by: "",
+          last_used_at: null,
+          expires_at: null,
+          is_revoked: false,
+          created_at: new Date().toISOString(),
+        },
+        ...prev,
+      ]);
+      // Show the reveal dialog (no page reload — that would destroy the revealed key)
+      setNewKeyRevealed(revealData);
     } else {
       toast.error(result.error || "Failed to create API key");
     }
