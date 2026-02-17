@@ -1,10 +1,11 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, type ComponentPropsWithoutRef } from "react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Avatar } from "@/components/ui/avatar";
-import { CitationPopover } from "./citation-popover";
 import type { AIMessage } from "@/stores/ai-store";
 
 type AIMessageBubbleProps = {
@@ -12,144 +13,181 @@ type AIMessageBubbleProps = {
   userName?: string;
 };
 
-type ContentPart =
-  | { type: "text"; value: string }
-  | { type: "link"; text: string; url: string }
-  | { type: "citation"; title: string; url: string; excerpt?: string; raw: string };
-
 /**
- * Parses message text into structured parts:
- * - Plain text segments
- * - Markdown links: [text](url)
- * - Full citations: 📋 [title](url) — "excerpt"
+ * Custom markdown components styled for the glassmorphism dark theme.
+ * Applied only to assistant messages.
  */
-function parseContent(text: string): ContentPart[] {
-  if (!text) return [];
+const markdownComponents = {
+  // Paragraphs
+  p: ({ children, ...props }: ComponentPropsWithoutRef<"p">) => (
+    <p className="mb-3 last:mb-0 leading-relaxed" {...props}>
+      {children}
+    </p>
+  ),
 
-  const parts: ContentPart[] = [];
-  // Match citations: 📋 [title](url) — "excerpt" or just 📋 [title](url)
-  // Also matches plain [text](url) links
-  const combinedRegex = /📋\s*\[([^\]]+)\]\(([^)]+)\)(?:\s*[—–-]\s*[""]([^""]+)[""])?|\[([^\]]+)\]\(([^)]+)\)/g;
-  let lastIndex = 0;
-  let match;
+  // Headings
+  h1: ({ children, ...props }: ComponentPropsWithoutRef<"h1">) => (
+    <h1 className="mb-3 mt-4 first:mt-0 text-base font-bold text-text-primary" {...props}>
+      {children}
+    </h1>
+  ),
+  h2: ({ children, ...props }: ComponentPropsWithoutRef<"h2">) => (
+    <h2 className="mb-2 mt-4 first:mt-0 text-sm font-bold text-text-primary" {...props}>
+      {children}
+    </h2>
+  ),
+  h3: ({ children, ...props }: ComponentPropsWithoutRef<"h3">) => (
+    <h3 className="mb-2 mt-3 first:mt-0 text-sm font-semibold text-text-primary" {...props}>
+      {children}
+    </h3>
+  ),
 
-  while ((match = combinedRegex.exec(text)) !== null) {
-    // Add text before this match
-    if (match.index > lastIndex) {
-      parts.push({ type: "text", value: text.slice(lastIndex, match.index) });
+  // Bold / Italic
+  strong: ({ children, ...props }: ComponentPropsWithoutRef<"strong">) => (
+    <strong className="font-semibold text-text-primary" {...props}>
+      {children}
+    </strong>
+  ),
+  em: ({ children, ...props }: ComponentPropsWithoutRef<"em">) => (
+    <em className="italic text-text-secondary" {...props}>
+      {children}
+    </em>
+  ),
+
+  // Links
+  a: ({ children, href, ...props }: ComponentPropsWithoutRef<"a">) => (
+    <a
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="text-accent-primary underline decoration-accent-primary/30 underline-offset-2 hover:decoration-accent-primary transition-colors"
+      {...props}
+    >
+      {children}
+    </a>
+  ),
+
+  // Unordered lists
+  ul: ({ children, ...props }: ComponentPropsWithoutRef<"ul">) => (
+    <ul className="mb-3 last:mb-0 ml-1 list-none space-y-1.5" {...props}>
+      {children}
+    </ul>
+  ),
+
+  // Ordered lists
+  ol: ({ children, ...props }: ComponentPropsWithoutRef<"ol">) => (
+    <ol className="mb-3 last:mb-0 ml-1 list-none space-y-1.5 [counter-reset:item]" {...props}>
+      {children}
+    </ol>
+  ),
+
+  // List items
+  li: ({ children, ...props }: ComponentPropsWithoutRef<"li">) => {
+    // Check if parent is an ordered list via the "ordered" prop from react-markdown
+    const ordered = (props as Record<string, unknown>).ordered;
+    return (
+      <li
+        className={cn(
+          "relative pl-5 text-text-secondary",
+          ordered
+            ? "[counter-increment:item] before:content-[counter(item)'.'] before:absolute before:left-0 before:text-accent-cyan before:font-semibold before:text-xs"
+            : "before:content-['•'] before:absolute before:left-1 before:text-accent-primary before:font-bold"
+        )}
+        {...props}
+      >
+        {children}
+      </li>
+    );
+  },
+
+  // Inline code
+  code: ({ children, className, ...props }: ComponentPropsWithoutRef<"code">) => {
+    // Check if this is inside a <pre> (code block) vs inline
+    const isBlock = className?.includes("language-");
+    if (isBlock) {
+      return (
+        <code className={cn("text-[13px] leading-relaxed", className)} {...props}>
+          {children}
+        </code>
+      );
     }
+    return (
+      <code
+        className="rounded-md bg-bg-elevated/80 border border-border-subtle px-1.5 py-0.5 text-[13px] font-mono text-accent-cyan"
+        {...props}
+      >
+        {children}
+      </code>
+    );
+  },
 
-    if (match[1] !== undefined) {
-      // Citation match: 📋 [title](url) — "excerpt"
-      parts.push({
-        type: "citation",
-        title: match[1],
-        url: match[2],
-        excerpt: match[3] || undefined,
-        raw: match[0],
-      });
-    } else {
-      // Regular link match: [text](url)
-      parts.push({
-        type: "link",
-        text: match[4],
-        url: match[5],
-      });
-    }
+  // Code blocks
+  pre: ({ children, ...props }: ComponentPropsWithoutRef<"pre">) => (
+    <pre
+      className="mb-3 last:mb-0 overflow-x-auto rounded-lg bg-bg-elevated/60 border border-border-subtle p-3 text-[13px] font-mono leading-relaxed text-text-secondary"
+      {...props}
+    >
+      {children}
+    </pre>
+  ),
 
-    lastIndex = match.index + match[0].length;
-  }
+  // Blockquotes
+  blockquote: ({ children, ...props }: ComponentPropsWithoutRef<"blockquote">) => (
+    <blockquote
+      className="mb-3 last:mb-0 border-l-2 border-accent-violet/40 pl-3 italic text-text-secondary"
+      {...props}
+    >
+      {children}
+    </blockquote>
+  ),
 
-  // Add remaining text
-  if (lastIndex < text.length) {
-    parts.push({ type: "text", value: text.slice(lastIndex) });
-  }
+  // Horizontal rule
+  hr: (props: ComponentPropsWithoutRef<"hr">) => (
+    <hr className="my-4 border-border-glass" {...props} />
+  ),
 
-  return parts;
-}
-
-/**
- * Renders message content with:
- * - Markdown link support ([text](url) → clickable links)
- * - Citation popovers (📋 [title](url) — "excerpt" → glass pills with hover preview)
- */
-function RichContent({ text }: { text: string }) {
-  const elements = useMemo(() => {
-    const parts = parseContent(text);
-    if (parts.length === 0) return null;
-
-    return parts.map((part, i) => {
-      if (part.type === "citation") {
-        return (
-          <CitationPopover
-            key={i}
-            title={part.title}
-            url={part.url}
-            excerpt={part.excerpt}
-          >
-            <a
-              href={part.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 rounded-md bg-accent-primary/5 border border-accent-primary/10 px-1.5 py-0.5 text-xs cursor-pointer hover:bg-accent-primary/10 hover:border-accent-primary/20 transition-colors"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <span>📋</span>
-              <span className="text-accent-primary underline decoration-accent-primary/30 underline-offset-2">
-                {part.title}
-              </span>
-            </a>
-          </CitationPopover>
-        );
-      }
-
-      if (part.type === "link") {
-        return (
-          <a
-            key={i}
-            href={part.url}
-            target={part.url.startsWith("/") ? "_blank" : undefined}
-            rel={part.url.startsWith("/") ? "noopener noreferrer" : undefined}
-            className="text-accent-primary underline decoration-accent-primary/30 underline-offset-2 hover:decoration-accent-primary transition-colors"
-          >
-            {part.text}
-          </a>
-        );
-      }
-
-      // Text segment: render lines with newline handling and citation-line styling
-      const lines = part.value.split("\n");
-      return lines.map((line, j) => {
-        const key = `${i}-${j}`;
-        // Check for orphan citation lines (📋 without a link - rare edge case)
-        const isCitationLine = line.trimStart().startsWith("📋");
-
-        if (isCitationLine) {
-          return (
-            <span key={key}>
-              {j > 0 && "\n"}
-              <span className="inline-flex items-center gap-1 rounded-md bg-accent-primary/5 border border-accent-primary/10 px-1.5 py-0.5 text-xs">
-                {line.trim()}
-              </span>
-            </span>
-          );
-        }
-
-        return (
-          <span key={key}>
-            {j > 0 && "\n"}
-            {line}
-          </span>
-        );
-      });
-    });
-  }, [text]);
-
-  return <div className="whitespace-pre-wrap">{elements}</div>;
-}
+  // Tables
+  table: ({ children, ...props }: ComponentPropsWithoutRef<"table">) => (
+    <div className="mb-3 last:mb-0 overflow-x-auto rounded-lg border border-border-subtle">
+      <table className="w-full text-sm" {...props}>
+        {children}
+      </table>
+    </div>
+  ),
+  thead: ({ children, ...props }: ComponentPropsWithoutRef<"thead">) => (
+    <thead className="border-b border-border-subtle bg-bg-elevated/40" {...props}>
+      {children}
+    </thead>
+  ),
+  th: ({ children, ...props }: ComponentPropsWithoutRef<"th">) => (
+    <th className="px-3 py-2 text-left text-xs font-semibold text-text-primary" {...props}>
+      {children}
+    </th>
+  ),
+  td: ({ children, ...props }: ComponentPropsWithoutRef<"td">) => (
+    <td className="border-t border-border-subtle px-3 py-2 text-xs text-text-secondary" {...props}>
+      {children}
+    </td>
+  ),
+};
 
 export function AIMessageBubble({ message, userName }: AIMessageBubbleProps) {
   const isAssistant = message.role === "assistant";
+
+  const renderedContent = useMemo(() => {
+    if (!isAssistant) {
+      return <div className="whitespace-pre-wrap">{message.content}</div>;
+    }
+
+    return (
+      <ReactMarkdown
+        remarkPlugins={[remarkGfm]}
+        components={markdownComponents}
+      >
+        {message.content}
+      </ReactMarkdown>
+    );
+  }, [message.content, isAssistant]);
 
   return (
     <div
@@ -174,11 +212,7 @@ export function AIMessageBubble({ message, userName }: AIMessageBubbleProps) {
             : "bg-accent-primary/20 text-text-primary"
         )}
       >
-        {isAssistant ? (
-          <RichContent text={message.content} />
-        ) : (
-          <div className="whitespace-pre-wrap">{message.content}</div>
-        )}
+        {renderedContent}
       </div>
     </div>
   );
