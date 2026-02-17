@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Settings, GitBranch, Users, Upload, UserCircle } from "lucide-react";
+import { Settings, GitBranch, Users, Upload, UserCircle, KeyRound } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const settingsTabs = [
@@ -11,6 +11,7 @@ const settingsTabs = [
   { label: "Pipelines", href: "/settings/pipelines", icon: GitBranch },
   { label: "Members", href: "/settings/members", icon: Users },
   { label: "Import Data", href: "/settings/import", icon: Upload },
+  { label: "API Keys", href: "/settings/api-keys", icon: KeyRound },
 ];
 
 export default function SettingsLayout({ children }: { children: React.ReactNode }) {
