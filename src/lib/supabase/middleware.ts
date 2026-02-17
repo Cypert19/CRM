@@ -3,6 +3,11 @@ import { NextResponse, type NextRequest } from "next/server";
 import type { Database } from "@/types/database";
 
 export async function updateSession(request: NextRequest) {
+  // Skip API v1 routes — they use API key auth, not cookie sessions
+  if (request.nextUrl.pathname.startsWith("/api/v1/")) {
+    return NextResponse.next({ request });
+  }
+
   let supabaseResponse = NextResponse.next({
     request,
   });

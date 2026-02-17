@@ -1643,6 +1643,69 @@ export type Database = {
           },
         ];
       };
+      api_keys: {
+        Row: {
+          id: string;
+          workspace_id: string;
+          key_prefix: string;
+          key_hash: string;
+          name: string;
+          description: string | null;
+          permissions: string[];
+          created_by: string;
+          last_used_at: string | null;
+          expires_at: string | null;
+          is_revoked: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          workspace_id: string;
+          key_prefix: string;
+          key_hash: string;
+          name: string;
+          description?: string | null;
+          permissions?: string[];
+          created_by: string;
+          last_used_at?: string | null;
+          expires_at?: string | null;
+          is_revoked?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          workspace_id?: string;
+          key_prefix?: string;
+          key_hash?: string;
+          name?: string;
+          description?: string | null;
+          permissions?: string[];
+          created_by?: string;
+          last_used_at?: string | null;
+          expires_at?: string | null;
+          is_revoked?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "api_keys_workspace_id_fkey";
+            columns: ["workspace_id"];
+            isOneToOne: false;
+            referencedRelation: "workspaces";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "api_keys_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
     };
     // eslint-disable-next-line @typescript-eslint/no-empty-object-type
     Views: {};
