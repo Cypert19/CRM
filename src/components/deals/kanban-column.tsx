@@ -25,7 +25,7 @@ export function KanbanColumn({ stage, deals, onDealClick, onAddDeal }: KanbanCol
   const totalValue = deals.reduce((sum, d) => sum + Number(d.value), 0);
 
   return (
-    <div className="flex w-[300px] shrink-0 flex-col">
+    <div className="flex w-[85vw] shrink-0 snap-center flex-col sm:w-[300px]">
       {/* Column Header */}
       <div className="mb-3 flex items-center justify-between">
         <div className="flex items-center gap-2">

@@ -9,6 +9,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { DataTable, type Column } from "@/components/ui/data-table";
 import { Badge } from "@/components/ui/badge";
 import { Avatar } from "@/components/ui/avatar";
+import { GlassCard } from "@/components/ui/glass-card";
 import { ContactForm } from "./contact-form";
 import type { Tables } from "@/types/database";
 
@@ -92,6 +93,18 @@ export function ContactsList({ contacts }: { contacts: ContactRow[] }) {
           columns={columns}
           keyExtractor={(row) => row.id}
           onRowClick={(row) => router.push(`/contacts/${row.id}`)}
+          mobileCardRender={(row) => (
+            <GlassCard className="!p-3">
+              <div className="flex items-center gap-3">
+                <Avatar name={`${row.first_name} ${row.last_name}`} src={row.avatar_url} size="sm" />
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-medium text-text-primary">{row.first_name} {row.last_name}</p>
+                  {row.email && <p className="truncate text-xs text-text-tertiary">{row.email}</p>}
+                </div>
+                {row.lifecycle_stage && <Badge variant="secondary">{row.lifecycle_stage}</Badge>}
+              </div>
+            </GlassCard>
+          )}
         />
       </div>
       <ContactForm open={formOpen} onOpenChange={setFormOpen} />

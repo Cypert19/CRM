@@ -11,7 +11,7 @@ const GlassCard = React.forwardRef<HTMLDivElement, GlassCardProps>(
     <div
       ref={ref}
       className={cn(
-        "glass-panel rounded-2xl p-6",
+        "glass-panel rounded-2xl p-4 md:p-6",
         hover && "glass-card-hover cursor-pointer",
         glow === "violet" && "glow-violet",
         glow === "cyan" && "glow-cyan",

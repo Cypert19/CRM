@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useUIStore } from "@/stores/ui-store";
 import { useAIStore, type AIMessage } from "@/stores/ai-store";
 import { useFocusStore } from "@/stores/focus-store";
+import { useDevice } from "@/components/providers/mobile-provider";
 import { AIMessageBubble } from "./ai-message";
 import { AIInput } from "./ai-input";
 import { ThinkingGradient } from "./thinking-gradient";
@@ -113,6 +114,8 @@ export function AIPanel() {
     }
   };
 
+  const { isMobile } = useDevice();
+
   // Suppress when focus mode is active (focus mode has its own AI chat)
   if (focusModeActive) return null;
 
@@ -120,11 +123,11 @@ export function AIPanel() {
     <AnimatePresence>
       {aiPanelOpen && (
         <motion.div
-          initial={{ x: "100%" }}
-          animate={{ x: 0 }}
-          exit={{ x: "100%" }}
+          initial={isMobile ? { y: "100%" } : { x: "100%" }}
+          animate={isMobile ? { y: 0 } : { x: 0 }}
+          exit={isMobile ? { y: "100%" } : { x: "100%" }}
           transition={{ type: "spring", damping: 25, stiffness: 200 }}
-          className="fixed bottom-0 right-0 top-0 z-50 flex w-[420px] flex-col border-l border-accent-cyan/20 bg-bg-surface/95 backdrop-blur-xl"
+          className="fixed bottom-0 right-0 top-0 z-50 flex w-full flex-col border-l border-accent-cyan/20 bg-bg-surface/95 backdrop-blur-xl md:w-[420px]"
           style={{
             boxShadow: "-4px 0 20px rgba(249, 115, 22, 0.1)",
           }}

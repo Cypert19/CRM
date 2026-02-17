@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/gradient-button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { DataTable, type Column } from "@/components/ui/data-table";
 import { Badge } from "@/components/ui/badge";
+import { GlassCard } from "@/components/ui/glass-card";
 import { CompanyForm } from "./company-form";
 import type { Tables } from "@/types/database";
 
@@ -36,7 +37,25 @@ export function CompanyList({ companies }: { companies: Tables<"companies">[] })
       <PageHeader title="Companies" description="Manage organizations">
         <Button onClick={() => setFormOpen(true)}><Plus className="h-4 w-4" />Add Company</Button>
       </PageHeader>
-      <div className="mt-6"><DataTable data={companies} columns={columns} keyExtractor={(r) => r.id} onRowClick={(r) => router.push(`/companies/${r.id}`)} /></div>
+      <div className="mt-6">
+        <DataTable
+          data={companies}
+          columns={columns}
+          keyExtractor={(r) => r.id}
+          onRowClick={(r) => router.push(`/companies/${r.id}`)}
+          mobileCardRender={(r) => (
+            <GlassCard className="!p-3">
+              <div className="flex items-center justify-between gap-3">
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-medium text-text-primary">{r.company_name}</p>
+                  {r.industry && <p className="text-xs text-text-tertiary">{r.industry}</p>}
+                </div>
+                {r.employee_count_range && <Badge variant="secondary">{r.employee_count_range}</Badge>}
+              </div>
+            </GlassCard>
+          )}
+        />
+      </div>
       <CompanyForm open={formOpen} onOpenChange={setFormOpen} />
     </>
   );

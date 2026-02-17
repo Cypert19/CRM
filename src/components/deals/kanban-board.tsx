@@ -6,6 +6,7 @@ import {
   DragOverlay,
   closestCorners,
   PointerSensor,
+  TouchSensor,
   useSensor,
   useSensors,
   type DragEndEvent,
@@ -34,6 +35,9 @@ export function KanbanBoard({ stages, deals, onDealClick, onAddDeal }: KanbanBoa
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: { distance: 8 },
+    }),
+    useSensor(TouchSensor, {
+      activationConstraint: { delay: 250, tolerance: 5 },
     })
   );
 
@@ -71,6 +75,9 @@ export function KanbanBoard({ stages, deals, onDealClick, onAddDeal }: KanbanBoa
   const panState = useRef({ isPanning: false, startX: 0, scrollLeftStart: 0 });
 
   const handlePointerDown = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
+    // Don't grab-to-pan on touch devices — let native scroll handle it
+    if (e.pointerType === "touch") return;
+
     // Don't pan if clicking on a card — let dnd-kit handle it
     const target = e.target as HTMLElement;
     if (target.closest("[data-kanban-card]")) return;
@@ -124,7 +131,7 @@ export function KanbanBoard({ stages, deals, onDealClick, onAddDeal }: KanbanBoa
     >
       <div
         ref={containerRef}
-        className="flex gap-4 overflow-x-auto pb-4 cursor-grab"
+        className="flex gap-4 overflow-x-auto pb-4 cursor-grab snap-x snap-mandatory scrollbar-hide md:snap-none md:scrollbar-default"
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}

@@ -253,7 +253,7 @@ export function ProfileSettingsView() {
               />
 
               {/* Read-only fields */}
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <label className="flex items-center gap-1.5 text-xs text-text-secondary">
                     <Mail className="h-3 w-3" />
@@ -275,7 +275,7 @@ export function ProfileSettingsView() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <label className="flex items-center gap-1.5 text-xs text-text-secondary">
                     <Building2 className="h-3 w-3" />

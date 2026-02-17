@@ -18,7 +18,7 @@ export default function SettingsLayout({ children }: { children: React.ReactNode
 
   return (
     <div>
-      <div className="mb-6 flex items-center gap-1 rounded-xl bg-bg-card/50 p-1">
+      <div className="mb-6 flex items-center gap-1 overflow-x-auto rounded-xl bg-bg-card/50 p-1 scrollbar-hide">
         {settingsTabs.map((tab) => {
           const isActive = pathname === tab.href || pathname?.endsWith(tab.href);
           const Icon = tab.icon;

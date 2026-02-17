@@ -212,7 +212,7 @@ export function TaskForm({ open, onOpenChange, dealId, contactId, task }: TaskFo
 
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Title + Status */}
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <label className="block text-xs text-text-secondary">Title *</label>
               <Input
@@ -244,7 +244,7 @@ export function TaskForm({ open, onOpenChange, dealId, contactId, task }: TaskFo
           </div>
 
           {/* Priority + Type */}
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <label className="block text-xs text-text-secondary">Priority</label>
               <Select
@@ -305,7 +305,7 @@ export function TaskForm({ open, onOpenChange, dealId, contactId, task }: TaskFo
           </div>
 
           {/* Deal + Contact */}
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <label className="block text-xs text-text-secondary">Deal</label>
               <Select
@@ -347,7 +347,7 @@ export function TaskForm({ open, onOpenChange, dealId, contactId, task }: TaskFo
           </div>
 
           {/* Due Date + Due Time */}
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <label className="block text-xs text-text-secondary">Due Date</label>
               <Input
@@ -367,7 +367,7 @@ export function TaskForm({ open, onOpenChange, dealId, contactId, task }: TaskFo
           </div>
 
           {/* Start Date + End Date */}
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <label className="block text-xs text-text-secondary">Start Date</label>
               <Input
@@ -387,7 +387,7 @@ export function TaskForm({ open, onOpenChange, dealId, contactId, task }: TaskFo
           </div>
 
           {/* Category + Estimated Minutes */}
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <label className="block text-xs text-text-secondary">Category</label>
               <Select

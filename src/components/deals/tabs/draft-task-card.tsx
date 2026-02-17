@@ -129,7 +129,7 @@ export function DraftTaskCard({ task, members, onConfirm, onUpdate, disabled }: 
             onChange={(e) => setEditTitle(e.target.value)}
             placeholder="Task title"
           />
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <label className="block text-xs font-medium text-text-secondary">Type</label>
               <Select value={editType} onValueChange={(v) => setEditType(v as typeof editType)}>
@@ -149,7 +149,7 @@ export function DraftTaskCard({ task, members, onConfirm, onUpdate, disabled }: 
               </Select>
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <Input
               label="Due Date"
               type="date"

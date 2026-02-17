@@ -76,7 +76,7 @@ export function WorkspaceSettingsForm({ workspace }: { workspace: Tables<"worksp
             placeholder="My Workspace"
             required
           />
-          <div className="grid grid-cols-2 gap-4 text-xs text-text-tertiary">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs text-text-tertiary">
             <div>
               <span className="text-text-secondary">Slug:</span> {workspace.slug}
             </div>
@@ -92,7 +92,7 @@ export function WorkspaceSettingsForm({ workspace }: { workspace: Tables<"worksp
         <h3 className="text-sm font-semibold text-text-primary">Regional Settings</h3>
         <p className="mt-1 text-xs text-text-tertiary">Currency, timezone, and fiscal year configuration</p>
         <div className="mt-4 space-y-4">
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1.5">
               <label className="block text-xs text-text-secondary">Default Currency</label>
               <Select value={currency} onValueChange={setCurrency}>

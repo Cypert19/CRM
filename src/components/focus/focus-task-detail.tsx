@@ -108,7 +108,7 @@ export function FocusTaskDetail({ task }: { task: TaskWithRelations }) {
         <h3 className="text-sm font-semibold text-text-primary mb-3">
           Details
         </h3>
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {/* Assignee */}
           <div className="flex items-center gap-2.5">
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent-primary/10">

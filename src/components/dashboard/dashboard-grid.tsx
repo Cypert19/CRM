@@ -60,7 +60,7 @@ export function DashboardGrid({ tiles, editMode, onReorder, onEditTile, onDelete
       onDragEnd={handleDragEnd}
     >
       <SortableContext items={tiles.map((t) => t.id)} strategy={rectSortingStrategy}>
-        <div className="grid auto-rows-auto grid-cols-6 gap-4 lg:grid-cols-12">
+        <div className="grid auto-rows-auto grid-cols-2 gap-4 sm:grid-cols-6 lg:grid-cols-12">
           {tiles.map((tile) => (
             <DashboardTileWrapper
               key={tile.id}

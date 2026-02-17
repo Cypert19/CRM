@@ -163,15 +163,15 @@ export function CompanyDetail({ company: initialCompany }: { company: Tables<"co
             {editing ? (
               <div className="space-y-4">
                 <Input label="Company Name" value={companyName} onChange={(e) => setCompanyName(e.target.value)} required />
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <Input label="Domain" value={domain} onChange={(e) => setDomain(e.target.value)} placeholder="example.com" />
                   <Input label="Industry" value={industry} onChange={(e) => setIndustry(e.target.value)} placeholder="e.g. Technology" />
                 </div>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <Input label="Phone" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+1 (555) 000-0000" />
                   <Input label="Website" value={website} onChange={(e) => setWebsite(e.target.value)} placeholder="https://example.com" />
                 </div>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-1.5">
                     <label className="block text-xs font-medium text-text-secondary">Employees</label>
                     <Select value={employeeRange} onValueChange={setEmployeeRange}>
@@ -190,7 +190,7 @@ export function CompanyDetail({ company: initialCompany }: { company: Tables<"co
                 <div className="space-y-3">
                   <label className="block text-xs font-medium text-text-secondary">Address</label>
                   <Input label="" value={street} onChange={(e) => setStreet(e.target.value)} placeholder="Street address" />
-                  <div className="grid grid-cols-3 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     <Input label="" value={city} onChange={(e) => setCity(e.target.value)} placeholder="City" />
                     <Input label="" value={addrState} onChange={(e) => setAddrState(e.target.value)} placeholder="State" />
                     <Input label="" value={zip} onChange={(e) => setZip(e.target.value)} placeholder="ZIP" />
@@ -223,7 +223,7 @@ export function CompanyDetail({ company: initialCompany }: { company: Tables<"co
 
           <GlassCard>
             <h3 className="mb-4 text-sm font-semibold text-text-primary">Company Information</h3>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {[
                 { icon: Globe, color: "text-accent-primary", label: "Domain", val: company.domain || "Not set" },
                 { icon: Briefcase, color: "text-signal-warning", label: "Industry", val: company.industry || "Not set" },

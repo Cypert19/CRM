@@ -198,7 +198,7 @@ export function StepDisplay(props: Props) {
       {/* Tile size */}
       <div>
         <label className="mb-1 block text-xs font-medium text-text-tertiary">Tile Size</label>
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
           {SIZES.map((size) => (
             <button
               key={`${size.w}x${size.h}`}

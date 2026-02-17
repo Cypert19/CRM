@@ -307,7 +307,7 @@ export function DealOverviewTab({ deal, editing, onDealUpdate, pipelineStages = 
               <Input label="Deal Title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Deal title" required />
               <div>
                 <label className="mb-1.5 block text-xs font-medium text-text-secondary">Revenue Breakdown</label>
-                <div className="grid grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <Input label="Audit Fee ($)" type="number" value={auditFee} onChange={(e) => setAuditFee(e.target.value)} placeholder="0" />
                   <Input label="Monthly Retainer ($)" type="number" value={retainerMonthly} onChange={(e) => setRetainerMonthly(e.target.value)} placeholder="0" />
                   <Input label="Custom Dev Fee ($)" type="number" value={customDevFee} onChange={(e) => setCustomDevFee(e.target.value)} placeholder="0" />
@@ -316,7 +316,7 @@ export function DealOverviewTab({ deal, editing, onDealUpdate, pipelineStages = 
               </div>
               <div>
                 <label className="mb-1.5 block text-xs font-medium text-text-secondary">Revenue Tracking Period</label>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <Input label="Start Date" type="date" value={revenueStartDate} onChange={(e) => setRevenueStartDate(e.target.value)} />
                   <Input label="End Date (optional)" type="date" value={revenueEndDate} onChange={(e) => setRevenueEndDate(e.target.value)} />
                 </div>
@@ -378,7 +378,7 @@ export function DealOverviewTab({ deal, editing, onDealUpdate, pipelineStages = 
                   </Select>
                 </div>
               )}
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <label className="block text-xs font-medium text-text-secondary">Priority</label>
                   <Select value={priority} onValueChange={setPriority}>
@@ -398,7 +398,7 @@ export function DealOverviewTab({ deal, editing, onDealUpdate, pipelineStages = 
                   </Select>
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <label className="block text-xs font-medium text-text-secondary">Payment Type</label>
                   <Select value={paymentType} onValueChange={setPaymentType}>
@@ -420,7 +420,7 @@ export function DealOverviewTab({ deal, editing, onDealUpdate, pipelineStages = 
                   </div>
                 )}
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <label className="block text-xs font-medium text-text-secondary">Industry</label>
                   <Select value={dealIndustry} onValueChange={setDealIndustry}>
@@ -441,7 +441,7 @@ export function DealOverviewTab({ deal, editing, onDealUpdate, pipelineStages = 
                 </div>
               </div>
               <Input label="Expected Close Date" type="date" value={expectedCloseDate} onChange={(e) => setExpectedCloseDate(e.target.value)} />
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <label className="block text-xs font-medium text-text-secondary">Contact</label>
                   <Select value={contactId} onValueChange={setContactId} disabled={loadingLists}>

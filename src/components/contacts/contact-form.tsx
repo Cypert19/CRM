@@ -31,7 +31,7 @@ export function ContactForm({ open, onOpenChange }: { open: boolean; onOpenChang
       <DialogContent className="max-w-md">
         <DialogHeader><DialogTitle>New Contact</DialogTitle></DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <Input name="first_name" label="First Name" required autoFocus />
             <Input name="last_name" label="Last Name" required />
           </div>

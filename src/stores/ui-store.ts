@@ -7,6 +7,7 @@ type UIState = {
   commandPaletteOpen: boolean;
   dealsViewMode: ViewMode;
   tasksViewMode: ViewMode;
+  mobileMenuOpen: boolean;
 };
 
 type UIActions = {
@@ -18,6 +19,8 @@ type UIActions = {
   setCommandPaletteOpen: (open: boolean) => void;
   setDealsViewMode: (mode: ViewMode) => void;
   setTasksViewMode: (mode: ViewMode) => void;
+  setMobileMenuOpen: (open: boolean) => void;
+  toggleMobileMenu: () => void;
 };
 
 export const useUIStore = create<UIState & UIActions>((set) => ({
@@ -26,6 +29,7 @@ export const useUIStore = create<UIState & UIActions>((set) => ({
   commandPaletteOpen: false,
   dealsViewMode: "kanban",
   tasksViewMode: "list",
+  mobileMenuOpen: false,
 
   toggleSidebar: () => set((s) => ({ sidebarCollapsed: !s.sidebarCollapsed })),
   setSidebarCollapsed: (collapsed) => set({ sidebarCollapsed: collapsed }),
@@ -35,4 +39,6 @@ export const useUIStore = create<UIState & UIActions>((set) => ({
   setCommandPaletteOpen: (open) => set({ commandPaletteOpen: open }),
   setDealsViewMode: (mode) => set({ dealsViewMode: mode }),
   setTasksViewMode: (mode) => set({ tasksViewMode: mode }),
+  setMobileMenuOpen: (open) => set({ mobileMenuOpen: open }),
+  toggleMobileMenu: () => set((s) => ({ mobileMenuOpen: !s.mobileMenuOpen })),
 }));

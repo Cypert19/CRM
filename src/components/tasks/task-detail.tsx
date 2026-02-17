@@ -493,7 +493,7 @@ export function TaskDetail({ task: initialTask }: { task: TaskWithRelations }) {
                 </div>
 
                 {/* Deal + Contact */}
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-1.5">
                     <label className="block text-xs font-medium text-text-secondary">Deal</label>
                     <Select
@@ -539,7 +539,7 @@ export function TaskDetail({ task: initialTask }: { task: TaskWithRelations }) {
                 </div>
 
                 {/* Due Date + Due Time */}
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <Input
                     label="Due Date"
                     type="date"
@@ -555,7 +555,7 @@ export function TaskDetail({ task: initialTask }: { task: TaskWithRelations }) {
                 </div>
 
                 {/* Start Date + End Date */}
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <Input
                     label="Start Date"
                     type="date"
@@ -571,7 +571,7 @@ export function TaskDetail({ task: initialTask }: { task: TaskWithRelations }) {
                 </div>
 
                 {/* Category + Estimated Minutes */}
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-1.5">
                     <label className="block text-xs font-medium text-text-secondary">
                       Category

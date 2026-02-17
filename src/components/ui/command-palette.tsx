@@ -55,7 +55,7 @@ export function CommandPalette() {
         className="absolute inset-0 bg-black/60 backdrop-blur-sm"
         onClick={() => setCommandPaletteOpen(false)}
       />
-      <div className="absolute left-1/2 top-[20%] w-full max-w-xl -translate-x-1/2">
+      <div className="absolute left-1/2 top-[15%] w-full max-w-xl -translate-x-1/2 px-4 md:top-[20%] md:px-0">
         <Command
           className="glass-panel overflow-hidden rounded-2xl"
           shouldFilter={true}

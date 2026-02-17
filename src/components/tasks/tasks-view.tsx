@@ -288,7 +288,7 @@ export function TasksView({ tasks }: { tasks: TaskWithRelations[] }) {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 20 }}
             transition={{ duration: 0.2 }}
-            className="fixed bottom-6 left-1/2 z-40 -translate-x-1/2"
+            className="fixed bottom-24 left-1/2 z-40 -translate-x-1/2 md:bottom-6"
           >
             <div className="glass-panel flex items-center gap-4 rounded-2xl px-6 py-3 shadow-lg">
               <span className="text-sm font-medium text-text-primary">

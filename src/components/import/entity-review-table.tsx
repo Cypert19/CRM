@@ -293,7 +293,7 @@ function ExpandedDetails({
       )}
 
       {/* Full data preview */}
-      <div className="grid grid-cols-2 gap-x-8 gap-y-2">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-2">
         {Object.entries(item)
           .filter(
             ([key]) =>

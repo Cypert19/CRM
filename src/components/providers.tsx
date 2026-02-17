@@ -3,6 +3,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useState, type ReactNode } from "react";
 import { Toaster } from "sonner";
+import { DeviceProvider } from "@/components/providers/mobile-provider";
 
 export function Providers({ children }: { children: ReactNode }) {
   const [queryClient] = useState(
@@ -20,10 +21,12 @@ export function Providers({ children }: { children: ReactNode }) {
 
   return (
     <QueryClientProvider client={queryClient}>
-      {children}
+      <DeviceProvider>
+        {children}
+      </DeviceProvider>
       <Toaster
         theme="dark"
-        position="bottom-right"
+        position="top-center"
         toastOptions={{
           style: {
             background: "rgba(28, 28, 28, 0.9)",

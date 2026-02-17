@@ -104,7 +104,7 @@ export function DealForm({
 
           <div className="space-y-1.5">
             <label className="block text-xs font-medium text-text-secondary">Revenue Breakdown</label>
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
               <Input
                 name="audit_fee"
                 label="Audit Fee"
@@ -162,7 +162,7 @@ export function DealForm({
             type="date"
           />
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div className="space-y-1.5">
               <label className="block text-xs text-text-secondary">Priority</label>
               <Select value={priority} onValueChange={setPriority}>
@@ -196,7 +196,7 @@ export function DealForm({
             </div>
           </div>
 
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
             <div className="space-y-1.5">
               <label className="block text-xs text-text-secondary">Payment Type</label>
               <Select value={paymentType} onValueChange={setPaymentType}>

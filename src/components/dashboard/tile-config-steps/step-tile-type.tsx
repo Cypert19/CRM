@@ -33,7 +33,7 @@ export function StepTileType({ value, onChange }: Props) {
   return (
     <div className="space-y-3">
       <p className="text-sm font-medium text-text-primary">Choose tile type</p>
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         {TILE_TYPES.map((tt) => (
           <button
             key={tt.type}

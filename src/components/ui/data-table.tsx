@@ -2,6 +2,7 @@
 
 import { cn } from "@/lib/utils";
 import { ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import { useDevice } from "@/components/providers/mobile-provider";
 import type { SortConfig } from "@/types/common";
 
 type Column<T> = {
@@ -21,6 +22,8 @@ type DataTableProps<T> = {
   keyExtractor: (row: T) => string;
   emptyMessage?: string;
   className?: string;
+  /** Optional mobile card renderer — when provided, renders cards instead of table rows on mobile */
+  mobileCardRender?: (row: T) => React.ReactNode;
 };
 
 function DataTable<T>({
@@ -32,7 +35,34 @@ function DataTable<T>({
   keyExtractor,
   emptyMessage = "No data",
   className,
+  mobileCardRender,
 }: DataTableProps<T>) {
+  const { isMobile } = useDevice();
+
+  // Mobile card view
+  if (isMobile && mobileCardRender) {
+    return (
+      <div className={cn("space-y-3", className)}>
+        {data.length === 0 ? (
+          <div className="glass-panel rounded-2xl py-12 text-center text-sm text-text-tertiary">
+            {emptyMessage}
+          </div>
+        ) : (
+          data.map((row) => (
+            <div
+              key={keyExtractor(row)}
+              onClick={() => onRowClick?.(row)}
+              className={cn(onRowClick && "cursor-pointer")}
+            >
+              {mobileCardRender(row)}
+            </div>
+          ))
+        )}
+      </div>
+    );
+  }
+
+  // Desktop table view
   return (
     <div className={cn("glass-panel overflow-hidden rounded-2xl", className)}>
       <div className="overflow-x-auto">

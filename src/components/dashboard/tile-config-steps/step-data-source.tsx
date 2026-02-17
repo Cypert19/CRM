@@ -147,7 +147,7 @@ export function StepDataSource(props: Props) {
             <label className="mb-1 block text-xs font-medium text-text-tertiary">
               Columns (select up to 10)
             </label>
-            <div className="grid grid-cols-2 gap-1.5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
               {allFields.map((f) => (
                 <label
                   key={f.key}
@@ -175,7 +175,7 @@ export function StepDataSource(props: Props) {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <SelectField
               label="Sort By"
               value={sortColumn}

@@ -180,16 +180,16 @@ export function ContactDetail({ contact: initialContact }: { contact: Tables<"co
           <GlassCard>
             {editing ? (
               <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <Input label="First Name" value={firstName} onChange={(e) => setFirstName(e.target.value)} required />
                   <Input label="Last Name" value={lastName} onChange={(e) => setLastName(e.target.value)} required />
                 </div>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <Input label="Email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="email@example.com" />
                   <Input label="Phone" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+1 (555) 000-0000" />
                 </div>
                 <Input label="Job Title" value={jobTitle} onChange={(e) => setJobTitle(e.target.value)} placeholder="e.g. VP of Sales" />
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-1.5">
                     <label className="block text-xs font-medium text-text-secondary">Lifecycle Stage</label>
                     <Select value={lifecycleStage} onValueChange={setLifecycleStage}>
@@ -208,14 +208,14 @@ export function ContactDetail({ contact: initialContact }: { contact: Tables<"co
                 <div className="space-y-3">
                   <label className="block text-xs font-medium text-text-secondary">Address</label>
                   <Input label="" value={street} onChange={(e) => setStreet(e.target.value)} placeholder="Street address" />
-                  <div className="grid grid-cols-3 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     <Input label="" value={city} onChange={(e) => setCity(e.target.value)} placeholder="City" />
                     <Input label="" value={addrState} onChange={(e) => setAddrState(e.target.value)} placeholder="State" />
                     <Input label="" value={zip} onChange={(e) => setZip(e.target.value)} placeholder="ZIP" />
                   </div>
                   <Input label="" value={country} onChange={(e) => setCountry(e.target.value)} placeholder="Country" />
                 </div>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <Input label="LinkedIn URL" value={linkedin} onChange={(e) => setLinkedin(e.target.value)} placeholder="https://linkedin.com/in/..." />
                   <Input label="Twitter URL" value={twitter} onChange={(e) => setTwitter(e.target.value)} placeholder="https://twitter.com/..." />
                 </div>
@@ -234,7 +234,7 @@ export function ContactDetail({ contact: initialContact }: { contact: Tables<"co
 
           <GlassCard>
             <h3 className="mb-4 text-sm font-semibold text-text-primary">Contact Information</h3>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {[
                 { icon: Mail, color: "text-accent-primary", label: "Email", val: contact.email || "Not set" },
                 { icon: Phone, color: "text-signal-success", label: "Phone", val: contact.phone || "Not set" },
