@@ -17,6 +17,7 @@ import {
   Square,
   CheckSquare as CheckSquareFilled,
 } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { PageHeader } from "@/components/layout/page-header";
 import { Button } from "@/components/ui/gradient-button";
 import { GlassCard } from "@/components/ui/glass-card";
@@ -25,6 +26,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { TaskForm } from "./task-form";
 import { updateTask, type TaskWithRelations } from "@/actions/tasks";
 import { useFocusStore } from "@/stores/focus-store";
+import { useUser } from "@/hooks/use-user";
 import { toast } from "sonner";
 import { AnimatePresence, motion } from "framer-motion";
 
@@ -38,6 +40,8 @@ const statusIcons: Record<string, typeof Circle> = {
 export function TasksView({ tasks }: { tasks: TaskWithRelations[] }) {
   const router = useRouter();
   const [formOpen, setFormOpen] = useState(false);
+  const { userId } = useUser();
+  const [filter, setFilter] = useState<"my" | "all">("my");
 
   const {
     queue,
@@ -97,10 +101,15 @@ export function TasksView({ tasks }: { tasks: TaskWithRelations[] }) {
     );
   }
 
+  const filteredTasks =
+    filter === "my" && userId
+      ? tasks.filter((t) => t.assignee_id === userId)
+      : tasks;
+
   const grouped = {
-    "To Do": tasks.filter((t) => t.status === "To Do"),
-    "In Progress": tasks.filter((t) => t.status === "In Progress"),
-    Done: tasks.filter((t) => t.status === "Done"),
+    "To Do": filteredTasks.filter((t) => t.status === "To Do"),
+    "In Progress": filteredTasks.filter((t) => t.status === "In Progress"),
+    Done: filteredTasks.filter((t) => t.status === "Done"),
   };
 
   const isSelected = (taskId: string) => selectedTaskIds.includes(taskId);
@@ -150,6 +159,47 @@ export function TasksView({ tasks }: { tasks: TaskWithRelations[] }) {
         </div>
       </PageHeader>
 
+      {/* Filter toggle */}
+      <div className="mt-4 flex items-center gap-1 rounded-xl bg-bg-card/50 p-1 w-fit">
+        <button
+          onClick={() => setFilter("my")}
+          className={cn(
+            "rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
+            filter === "my"
+              ? "bg-bg-elevated text-text-primary"
+              : "text-text-tertiary hover:text-text-secondary"
+          )}
+        >
+          My Tasks
+        </button>
+        <button
+          onClick={() => setFilter("all")}
+          className={cn(
+            "rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
+            filter === "all"
+              ? "bg-bg-elevated text-text-primary"
+              : "text-text-tertiary hover:text-text-secondary"
+          )}
+        >
+          All Tasks
+        </button>
+      </div>
+
+      {filteredTasks.length === 0 && tasks.length > 0 ? (
+        <div className="mt-6 flex flex-col items-center justify-center rounded-xl border border-border-glass bg-bg-card/30 py-12">
+          <CheckSquare className="mb-3 h-10 w-10 text-text-tertiary" />
+          <p className="text-sm font-medium text-text-primary">No tasks assigned to you</p>
+          <p className="mt-1 text-xs text-text-tertiary">Switch to all tasks to see everything</p>
+          <Button
+            variant="outline"
+            size="sm"
+            className="mt-4"
+            onClick={() => setFilter("all")}
+          >
+            View All Tasks
+          </Button>
+        </div>
+      ) : (
       <div className="mt-6 space-y-6">
         {Object.entries(grouped).map(([status, items]) => (
           <div key={status}>
@@ -279,6 +329,7 @@ export function TasksView({ tasks }: { tasks: TaskWithRelations[] }) {
           </div>
         ))}
       </div>
+      )}
 
       {/* Floating action bar when tasks are selected */}
       <AnimatePresence>
