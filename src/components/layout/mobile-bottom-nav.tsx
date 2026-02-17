@@ -43,7 +43,7 @@ export function MobileBottomNav() {
   if (keyboardOpen) return null;
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-40 flex h-[72px] items-center justify-around border-t border-border-glass bg-bg-surface/95 backdrop-blur-xl safe-area-bottom md:hidden">
+    <nav className="fixed bottom-0 left-0 right-0 z-40 flex h-[72px] items-center border-t border-border-glass bg-bg-surface/95 px-2 backdrop-blur-xl safe-area-bottom md:hidden">
       {tabs.map((tab) => {
         const isActive = pathname.startsWith(tab.href);
         return (

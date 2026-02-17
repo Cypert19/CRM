@@ -38,29 +38,33 @@ export function MobileTopbar() {
   };
 
   return (
-    <header className="fixed left-0 right-0 top-0 z-30 flex h-14 items-center justify-between border-b border-border-glass bg-bg-surface/80 px-3 backdrop-blur-md safe-area-top md:hidden">
+    <header className="fixed left-0 right-0 top-0 z-30 flex h-14 items-center border-b border-border-glass bg-bg-surface/80 px-3 backdrop-blur-md safe-area-top md:hidden">
       {/* Left: Hamburger */}
-      <button
-        onClick={toggleMobileMenu}
-        className="focus-ring flex h-10 w-10 items-center justify-center rounded-lg text-text-primary transition-colors hover:bg-bg-card/50"
-        aria-label="Open menu"
-      >
-        <Menu className="h-5 w-5" />
-      </button>
+      <div className="flex-1 flex items-center justify-start">
+        <button
+          onClick={toggleMobileMenu}
+          className="focus-ring flex h-10 w-10 items-center justify-center rounded-lg text-text-primary transition-colors hover:bg-bg-card/50"
+          aria-label="Open menu"
+        >
+          <Menu className="h-5 w-5" />
+        </button>
+      </div>
 
-      {/* Center: Logo */}
-      <Image
-        src="/avolis-icon.png"
-        alt="Nexus AI"
-        width={40}
-        height={40}
-        className="h-8 w-8 object-contain"
-        style={{ mixBlendMode: "screen" }}
-        priority
-      />
+      {/* Center: Logo — always centered */}
+      <div className="flex items-center justify-center">
+        <Image
+          src="/avolis-icon.png"
+          alt="Nexus AI"
+          width={40}
+          height={40}
+          className="h-8 w-8 object-contain"
+          style={{ mixBlendMode: "screen" }}
+          priority
+        />
+      </div>
 
       {/* Right: Actions */}
-      <div className="flex items-center gap-0.5">
+      <div className="flex-1 flex items-center justify-end gap-0.5">
         {/* Search */}
         <button
           onClick={toggleCommandPalette}
