@@ -43,7 +43,7 @@ export function MobileBottomNav() {
   if (keyboardOpen) return null;
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-40 flex h-16 items-center justify-around border-t border-border-glass bg-bg-surface/95 backdrop-blur-xl safe-area-bottom md:hidden">
+    <nav className="fixed bottom-0 left-0 right-0 z-40 flex h-[72px] items-center justify-around border-t border-border-glass bg-bg-surface/95 backdrop-blur-xl safe-area-bottom md:hidden">
       {tabs.map((tab) => {
         const isActive = pathname.startsWith(tab.href);
         return (
@@ -51,14 +51,14 @@ export function MobileBottomNav() {
             key={tab.href}
             href={tab.href}
             className={cn(
-              "flex min-w-[64px] flex-col items-center gap-0.5 px-3 py-2 transition-colors",
+              "flex flex-1 flex-col items-center gap-1 py-2.5 transition-colors",
               isActive
                 ? "text-accent-primary"
                 : "text-text-tertiary active:text-text-secondary"
             )}
           >
-            <tab.icon className="h-5 w-5" />
-            <span className="text-[10px] font-medium">{tab.label}</span>
+            <tab.icon className="h-6 w-6" />
+            <span className="text-[11px] font-medium">{tab.label}</span>
           </Link>
         );
       })}
@@ -67,12 +67,12 @@ export function MobileBottomNav() {
       <button
         onClick={toggleMobileMenu}
         className={cn(
-          "flex min-w-[64px] flex-col items-center gap-0.5 px-3 py-2 transition-colors",
+          "flex flex-1 flex-col items-center gap-1 py-2.5 transition-colors",
           "text-text-tertiary active:text-text-secondary"
         )}
       >
-        <MoreHorizontal className="h-5 w-5" />
-        <span className="text-[10px] font-medium">More</span>
+        <MoreHorizontal className="h-6 w-6" />
+        <span className="text-[11px] font-medium">More</span>
       </button>
     </nav>
   );

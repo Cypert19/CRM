@@ -38,7 +38,7 @@ export default function WorkspaceLayout({
           className={cn(
             "transition-[margin-left] duration-200",
             isMobile
-              ? "ml-0 pt-14 pb-20"
+              ? "ml-0 pt-safe-top pb-safe-bottom"
               : cn("pt-16", sidebarCollapsed ? "ml-[72px]" : "ml-[260px]")
           )}
         >

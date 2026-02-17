@@ -318,6 +318,16 @@
     padding-bottom: env(safe-area-inset-bottom, 0px);
   }
 
+  /* Content offset: topbar height (56px) + safe area inset */
+  .pt-safe-top {
+    padding-top: calc(3.5rem + env(safe-area-inset-top, 0px));
+  }
+
+  /* Content offset: bottom nav height (72px) + safe area inset */
+  .pb-safe-bottom {
+    padding-bottom: calc(4.5rem + env(safe-area-inset-bottom, 0px));
+  }
+
   /* Hide scrollbar but keep scrolling */
   .scrollbar-hide::-webkit-scrollbar {
     display: none;
